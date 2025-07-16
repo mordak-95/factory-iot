@@ -24,8 +24,24 @@ factory-iot/
 
 ## Quick Start
 
-1. Clone the repository
-2. Run the setup script: `./scripts/setup.sh`
+### Option 1: One-Command Installation (Recommended)
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/mordak-95/factory-iot/master/install.sh)
+```
+
+### Option 2: Manual Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/mordak-95/factory-iot.git
+   cd factory-iot
+   ```
+
+2. Run the setup script:
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
+   ```
+
 3. Choose option 1 to install and start the application
 
 ## Requirements

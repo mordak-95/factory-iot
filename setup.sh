@@ -13,7 +13,14 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Project directories
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "${BASH_SOURCE[0]}" ]]; then
+    # Script is a file, get its directory
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+else
+    # Script is being executed via curl, use current directory
+    PROJECT_ROOT="$(pwd)"
+fi
+
 CLIENT_DIR="$PROJECT_ROOT/client"
 BACKEND_DIR="$PROJECT_ROOT/backend"
 CONFIG_DIR="$PROJECT_ROOT/config"
@@ -22,8 +29,11 @@ SCRIPTS_DIR="$PROJECT_ROOT/scripts"
 # Configuration file
 CONFIG_FILE="$CONFIG_DIR/settings.json"
 
-# Log file
+# Log file - use home directory if project root is not writable
 LOG_FILE="$PROJECT_ROOT/setup.log"
+if [[ ! -w "$PROJECT_ROOT" ]]; then
+    LOG_FILE="$HOME/factory-iot-setup.log"
+fi
 
 # Function to log messages
 log() {
