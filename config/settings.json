@@ -1,0 +1,19 @@
+{
+    "server": {
+        "base_url": "http://localhost:5000",
+        "timeout": 30
+    },
+    "client": {
+        "port": 3000,
+        "host": "0.0.0.0"
+    },
+    "backend": {
+        "port": 5000,
+        "host": "0.0.0.0",
+        "debug": false
+    },
+    "kiosk": {
+        "enabled": true,
+        "url": "http://localhost:3000"
+    }
+} 
