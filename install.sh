@@ -75,6 +75,8 @@ install_system_deps() {
         sudo apt install -y nodejs
         # نصب درایورهای fbdev و fbturbo
         sudo apt install -y xserver-xorg-video-fbdev xserver-xorg-video-fbturbo
+        # نصب unclutter برای مخفی کردن نشانگر موس
+        sudo apt install -y unclutter
         # حذف تمام فایل‌های xorg.conf.d و xorg.conf
         sudo rm -rf /etc/X11/xorg.conf.d/*
         sudo rm -f /etc/X11/xorg.conf
@@ -144,6 +146,7 @@ setup_kiosk() {
 
     cat > "$HOME/start-kiosk.sh" << 'EOF'
 #!/bin/bash
+unclutter -idle 0 &
 exec > "$HOME/kiosk.log" 2>&1
 set -x
 xset s off
