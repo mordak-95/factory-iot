@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import './App.css';
 import DeviceCard from './components/DeviceCard';
 import SystemStats from './components/SystemStats';
@@ -13,35 +14,109 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [relays, setRelays] = useState({});
   const [relayError, setRelayError] = useState(null);
-
+  const [socketConnected, setSocketConnected] = useState(false);
+  
+  const socketRef = useRef(null);
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch devices
-      const devicesResponse = await axios.get(`${API_BASE_URL}/api/devices`);
-      setDevices(devicesResponse.data.devices);
-      
-      // Fetch system stats
-      const statsResponse = await axios.get(`${API_BASE_URL}/api/system/stats`);
-      setSystemStats(statsResponse.data);
-      
-      setLastUpdate(new Date());
+  // Initialize WebSocket connection
+  useEffect(() => {
+    // Create socket connection
+    socketRef.current = io(API_BASE_URL, {
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    });
+
+    // Socket event handlers
+    socketRef.current.on('connect', () => {
+      console.log('Connected to WebSocket server');
+      setSocketConnected(true);
       setError(null);
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to connect to backend server');
-    } finally {
+      
+      // Request initial data
+      socketRef.current.emit('request_devices');
+      socketRef.current.emit('request_system_stats');
+      socketRef.current.emit('request_relays');
+    });
+
+    socketRef.current.on('disconnect', () => {
+      console.log('Disconnected from WebSocket server');
+      setSocketConnected(false);
+      setError('Connection lost. Trying to reconnect...');
+    });
+
+    socketRef.current.on('connected', (data) => {
+      console.log('WebSocket connection established:', data);
+    });
+
+    // Handle real-time updates
+    socketRef.current.on('devices_update', (data) => {
+      console.log('Received devices update:', data);
+      setDevices(data.devices);
+      setLastUpdate(new Date());
       setLoading(false);
-    }
-  };
+    });
+
+    socketRef.current.on('system_stats_update', (data) => {
+      console.log('Received system stats update:', data);
+      setSystemStats(data);
+      setLastUpdate(new Date());
+    });
+
+    socketRef.current.on('relays_update', (data) => {
+      console.log('Received relays update:', data);
+      if (data.error) {
+        setRelayError(data.error);
+      } else {
+        setRelays(data.relays);
+        setRelayError(null);
+      }
+    });
+
+    // Fallback: Initial data fetch via HTTP if WebSocket fails
+    const fetchInitialData = async () => {
+      try {
+        const [devicesRes, statsRes, relaysRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/devices`),
+          axios.get(`${API_BASE_URL}/api/system/stats`),
+          axios.get(`${API_BASE_URL}/api/relays`).catch(() => ({ data: { relays: {} } }))
+        ]);
+
+        setDevices(devicesRes.data.devices);
+        setSystemStats(statsRes.data);
+        setRelays(relaysRes.data.relays || {});
+        setLastUpdate(new Date());
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching initial data:', err);
+        setError('Failed to connect to backend server');
+        setLoading(false);
+      }
+    };
+
+    // If WebSocket doesn't connect within 5 seconds, fall back to HTTP
+    const timeoutId = setTimeout(() => {
+      if (!socketConnected) {
+        console.log('WebSocket connection timeout, falling back to HTTP');
+        fetchInitialData();
+      }
+    }, 5000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, [API_BASE_URL]);
 
   const updateDeviceValue = async (deviceId, value) => {
     try {
       await axios.post(`${API_BASE_URL}/api/devices/${deviceId}/value`, { value });
-      fetchData(); // Refresh data
+      // WebSocket will automatically receive the update
     } catch (err) {
       console.error('Error updating device value:', err);
       setError('Failed to update device value');
@@ -51,41 +126,28 @@ function App() {
   const updateDeviceStatus = async (deviceId, status) => {
     try {
       await axios.post(`${API_BASE_URL}/api/devices/${deviceId}/status`, { status });
-      fetchData(); // Refresh data
+      // WebSocket will automatically receive the update
     } catch (err) {
       console.error('Error updating device status:', err);
       setError('Failed to update device status');
     }
   };
 
-  const fetchRelays = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/relays`);
-      setRelays(res.data.relays);
-      setRelayError(null);
-    } catch (err) {
-      setRelayError('Failed to fetch relays');
-    }
-  };
-
   const controlRelay = async (relayId, action) => {
     try {
       await axios.post(`${API_BASE_URL}/api/relays/${relayId}`, { action });
-      fetchRelays();
+      // WebSocket will automatically receive the update
     } catch (err) {
+      console.error(`Error controlling relay ${relayId}:`, err);
       setRelayError(`Failed to ${action} ${relayId}`);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    fetchRelays();
-    const interval = setInterval(() => {
-      fetchData();
-      fetchRelays();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const retryConnection = () => {
+    if (socketRef.current) {
+      socketRef.current.connect();
+    }
+  };
 
   if (loading && devices.length === 0) {
     return (
@@ -94,6 +156,9 @@ function App() {
         <div className="loading">
           <div className="spinner"></div>
           <p>Connecting to Factory IoT System...</p>
+          {!socketConnected && (
+            <p className="connection-status">Using WebSocket for real-time updates</p>
+          )}
         </div>
       </div>
     );
@@ -113,12 +178,12 @@ function App() {
 
   return (
     <div className="app">
-      <Header lastUpdate={lastUpdate} />
+      <Header lastUpdate={lastUpdate} socketConnected={socketConnected} />
       
       {error && (
         <div className="error-banner">
           <p>{error}</p>
-          <button onClick={fetchData}>Retry</button>
+          <button onClick={retryConnection}>Retry Connection</button>
         </div>
       )}
       
@@ -126,6 +191,13 @@ function App() {
         <div className="dashboard">
           <div className="devices-section">
             <h2>IoT Devices</h2>
+            <div className="connection-indicator">
+              {socketConnected ? (
+                <span className="connected">🟢 Real-time Connected</span>
+              ) : (
+                <span className="disconnected">🔴 HTTP Fallback</span>
+              )}
+            </div>
             <div className="devices-grid">
               {/* نمایش دستگاه‌ها */}
               {devices.map(device => (

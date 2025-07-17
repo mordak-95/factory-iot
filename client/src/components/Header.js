@@ -1,7 +1,7 @@
 import React from 'react';
 import './Header.css';
 
-const Header = ({ lastUpdate }) => {
+const Header = ({ lastUpdate, socketConnected }) => {
   const formatTime = (date) => {
     if (!date) return '';
     return date.toLocaleTimeString();
@@ -13,6 +13,13 @@ const Header = ({ lastUpdate }) => {
         <div className="header-left">
           <h1 className="header-title">🏭 Factory IoT</h1>
           <p className="header-subtitle">Industrial IoT Management System</p>
+          <div className="connection-status">
+            {socketConnected ? (
+              <span className="status-connected">🟢 Real-time Connected</span>
+            ) : (
+              <span className="status-fallback">🔴 HTTP Fallback Mode</span>
+            )}
+          </div>
         </div>
         <div className="header-right">
           {lastUpdate && (
