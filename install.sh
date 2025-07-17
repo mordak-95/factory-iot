@@ -90,22 +90,21 @@ install_system_deps() {
         sudo grep -qxF 'hdmi_group=2' "$CONFIG_FILE" || echo 'hdmi_group=2' | sudo tee -a "$CONFIG_FILE"
         sudo grep -qxF 'hdmi_mode=82' "$CONFIG_FILE" || echo 'hdmi_mode=82' | sudo tee -a "$CONFIG_FILE"
         
-        # ساخت فایل xorg.conf.d برای مانیتور
+        # حذف فایل مانیتور قبلی (در صورت وجود)
+        sudo rm -f /etc/X11/xorg.conf.d/10-monitor.conf
+
+        # فقط Section Device با Driver modesetting
         sudo mkdir -p /etc/X11/xorg.conf.d
-        sudo tee /etc/X11/xorg.conf.d/10-monitor.conf > /dev/null << EOF
+        sudo tee /etc/X11/xorg.conf.d/10-device.conf > /dev/null << EOF
 Section "Device"
     Identifier "Card0"
     Driver "modesetting"
     Option "PrimaryGPU" "true"
 EndSection
-
-Section "Screen"
-    Identifier "Screen0"
-    Device "Card0"
-    Monitor "HDMI-1"
-    DefaultDepth 24
-EndSection
 EOF
+
+        # حذف فایل xorg.conf اصلی (در صورت وجود)
+        sudo rm -f /etc/X11/xorg.conf
         
         log "System dependencies installed successfully"
     else
