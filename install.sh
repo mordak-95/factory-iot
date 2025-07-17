@@ -294,9 +294,8 @@ select_device_role() {
     done
 }
 
-# --- نصب سرور مرکزی ---
-install_mongodb() {
-    log "Installing MongoDB (via Docker)..."
+install_postgresql() {
+    log "Installing PostgreSQL (via Docker)..."
     if ! command -v docker &> /dev/null; then
         log "Docker not found. Installing Docker..."
         curl -fsSL https://get.docker.com -o get-docker.sh
@@ -308,40 +307,27 @@ install_mongodb() {
         log "Docker Compose not found. Installing Docker Compose..."
         sudo apt-get install -y docker-compose
     fi
-    # انتخاب ایمیج رسمی MongoDB فقط برای x86_64
-    ARCH=$(uname -m)
-    if [[ $ARCH == "x86_64" || $ARCH == "amd64" ]]; then
-      MONGO_IMAGE="mongo:6"
-    else
-      echo "[ERROR] No official MongoDB Docker image for ARM architecture ($ARCH)."
-      echo "Recommended:"
-      echo "  1. Run the central server on an x86_64 machine (even a small VPS/VM)."
-      echo "  2. Or install MongoDB natively (old version) with: sudo apt install mongodb"
-      echo "  3. Or use a different database (MariaDB/PostgreSQL) if possible."
-      exit 1
-    fi
-    log "Using MongoDB image: $MONGO_IMAGE for architecture: $ARCH"
-    # ایجاد فایل docker-compose.yml برای MongoDB
+    POSTGRES_USER="factoryiot"
+    POSTGRES_PASSWORD="factoryiotpass"
+    POSTGRES_DB="factoryiotdb"
+    log "Using PostgreSQL image: postgres:15"
     sudo tee docker-compose.yml > /dev/null << EOF
 version: '3.1'
 services:
-  mongo:
-    image: $MONGO_IMAGE
+  postgres:
+    image: postgres:15
     restart: always
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
     ports:
-      - 27017:27017
+      - 5432:5432
     volumes:
-      - ./mongo-data:/data/db
+      - ./pg-data:/var/lib/postgresql/data
 EOF
-    # تست pull ایمیج قبل از اجرای docker-compose
-    if ! sudo docker pull $MONGO_IMAGE; then
-      echo "\n[ERROR] MongoDB image $MONGO_IMAGE not found or not supported on this architecture ($ARCH)."
-      echo "If you are on Raspberry Pi, try native install: sudo apt install mongodb"
-      echo "Or use a supported platform."
-      exit 1
-    fi
     sudo docker-compose up -d
-    log "MongoDB started via Docker Compose."
+    log "PostgreSQL started via Docker Compose."
 }
 
 install_central_backend() {
@@ -438,14 +424,14 @@ main_install() {
     log "Starting Factory IoT installation..."
     select_device_role
     if [[ "$DEVICE_ROLE" == "central" ]]; then
-        install_mongodb
+        install_postgresql
         install_central_backend
         install_central_frontend
         # برگرداندن مالکیت کل پروژه به کاربر فعلی
         sudo chown -R $USER:$USER "$(pwd)"
         log "Central server installation complete!"
         echo -e "\n==================== INFO ===================="
-        echo -e "MongoDB:      mongodb://localhost:27017/"
+        echo -e "PostgreSQL:  postgres://factoryiot:factoryiotpass@localhost:5432/factoryiotdb"
         echo -e "Backend API:  http://localhost:5001/"
         echo -e "Frontend UI:  http://localhost:3000/"
         echo -e "============================================="
