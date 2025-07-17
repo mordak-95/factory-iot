@@ -326,7 +326,7 @@ services:
     volumes:
       - ./mongo-data:/data/db
 EOF
-    sudo docker-compose up -d
+    docker-compose up -d
     log "MongoDB started via Docker Compose."
 }
 
