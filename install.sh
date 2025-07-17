@@ -303,19 +303,13 @@ install_mongodb() {
         sh get-docker.sh
         sudo usermod -aG docker $USER
         rm get-docker.sh
-        # اجرای مجدد اسکریپت با گروه docker برای فعال شدن دسترسی بدون logout/login
-        if ! groups $USER | grep -q docker; then
-            log "Re-executing script with docker group (no logout needed)..."
-            exec sg docker "$0"
-            exit 0
-        fi
     fi
     if ! command -v docker-compose &> /dev/null; then
         log "Docker Compose not found. Installing Docker Compose..."
         sudo apt-get install -y docker-compose
     fi
     # ایجاد فایل docker-compose.yml برای MongoDB
-    cat > docker-compose.yml << 'EOF'
+    sudo tee docker-compose.yml > /dev/null << 'EOF'
 version: '3.1'
 services:
   mongo:
@@ -427,6 +421,8 @@ main_install() {
         install_mongodb
         install_central_backend
         install_central_frontend
+        # برگرداندن مالکیت کل پروژه به کاربر فعلی
+        sudo chown -R $USER:$USER "$(pwd)"
         log "Central server installation complete!"
         echo -e "\n==================== INFO ===================="
         echo -e "MongoDB:      mongodb://localhost:27017/"
