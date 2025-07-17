@@ -80,6 +80,33 @@ install_system_deps() {
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt install -y nodejs
         
+        # نصب درایورهای fbdev و fbturbo
+        sudo apt install -y xserver-xorg-video-fbdev xserver-xorg-video-fbturbo
+        
+        # ویرایش config.txt برای HDMI و GPU
+        CONFIG_FILE="/boot/firmware/config.txt"
+        sudo grep -qxF 'dtoverlay=vc4-kms-v3d' "$CONFIG_FILE" || echo 'dtoverlay=vc4-kms-v3d' | sudo tee -a "$CONFIG_FILE"
+        sudo grep -qxF 'max_framebuffers=2' "$CONFIG_FILE" || echo 'max_framebuffers=2' | sudo tee -a "$CONFIG_FILE"
+        sudo grep -qxF 'hdmi_group=2' "$CONFIG_FILE" || echo 'hdmi_group=2' | sudo tee -a "$CONFIG_FILE"
+        sudo grep -qxF 'hdmi_mode=82' "$CONFIG_FILE" || echo 'hdmi_mode=82' | sudo tee -a "$CONFIG_FILE"
+        
+        # ساخت فایل xorg.conf.d برای مانیتور
+        sudo mkdir -p /etc/X11/xorg.conf.d
+        sudo tee /etc/X11/xorg.conf.d/10-monitor.conf > /dev/null << EOF
+Section "Device"
+    Identifier "Card0"
+    Driver "modesetting"
+    Option "PrimaryGPU" "true"
+EndSection
+
+Section "Screen"
+    Identifier "Screen0"
+    Device "Card0"
+    Monitor "HDMI-1"
+    DefaultDepth 24
+EndSection
+EOF
+        
         log "System dependencies installed successfully"
     else
         log_warning "Not running on Raspberry Pi - installing basic dependencies..."
