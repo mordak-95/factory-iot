@@ -308,10 +308,12 @@ install_mongodb() {
         log "Docker Compose not found. Installing Docker Compose..."
         sudo apt-get install -y docker-compose
     fi
-    # انتخاب ایمیج مناسب MongoDB
+    # تشخیص معماری و انتخاب ایمیج مناسب
     ARCH=$(uname -m)
-    if [[ $ARCH == "aarch64" || $ARCH == "armv7l" ]]; then
-      MONGO_IMAGE="bubuntux/mongo-arm:latest"
+    if [[ $ARCH == "aarch64" ]]; then
+      MONGO_IMAGE="arm64v8/mongo:4.4"
+    elif [[ $ARCH == "armv7l" ]]; then
+      MONGO_IMAGE="arm32v7/mongo:4.4"
     else
       MONGO_IMAGE="mongo:6"
     fi
