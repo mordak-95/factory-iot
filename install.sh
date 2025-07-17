@@ -340,7 +340,7 @@ install_central_backend() {
     cat > requirements.txt << 'EOF'
 Flask
 Flask-CORS
-psycopg2-binary
+pymongo
 python-dotenv
 EOF
     # ایجاد فایل app.py ساده (TODO: بعداً کامل می‌شود)
