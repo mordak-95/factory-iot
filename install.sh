@@ -244,48 +244,40 @@ show_status() {
 
 # Main installation function
 main_install() {
-    set -x
     log "Starting Factory IoT installation..."
-    
+
     # Check if running as root
     if [[ $EUID -eq 0 ]]; then
         log_error "This script should not be run as root"
         exit 1
     fi
-    
+
     # Create log file
     touch "$LOG_FILE"
-    
-    # Install system dependencies
-    log "Installing system dependencies..." | tee -a "$LOG_FILE"
-    install_system_deps | tee -a "$LOG_FILE"
-    
-    # Clone repository
-    log "Cloning repository..." | tee -a "$LOG_FILE"
-    clone_repository | tee -a "$LOG_FILE"
-    
-    # Install backend
-    log "Installing backend..." | tee -a "$LOG_FILE"
-    install_backend | tee -a "$LOG_FILE"
-    
-    # Install frontend
-    log "Installing frontend..." | tee -a "$LOG_FILE"
-    install_frontend | tee -a "$LOG_FILE"
-    
-    # Setup kiosk mode
-    log "Setting up kiosk mode..." | tee -a "$LOG_FILE"
-    setup_kiosk | tee -a "$LOG_FILE"
-    
-    # Create services
-    log "Creating services..." | tee -a "$LOG_FILE"
-    create_services | tee -a "$LOG_FILE"
-    
-    # Start services
-    log "Starting services..." | tee -a "$LOG_FILE"
-    start_services | tee -a "$LOG_FILE"
-    
-    log "Installation completed successfully!" | tee -a "$LOG_FILE"
-    
+
+    log "Installing system dependencies..."
+    install_system_deps
+
+    log "Cloning repository..."
+    clone_repository
+
+    log "Installing backend..."
+    install_backend
+
+    log "Installing frontend..."
+    install_frontend
+
+    log "Setting up kiosk mode..."
+    setup_kiosk
+
+    log "Creating services..."
+    create_services
+
+    log "Starting services..."
+    start_services
+
+    log "Installation completed successfully!"
+
     echo -e "\n${GREEN}================================${NC}" | tee -a "$LOG_FILE"
     echo -e "${GREEN}  Factory IoT Installation Complete!${NC}" | tee -a "$LOG_FILE"
     echo -e "${GREEN}================================${NC}" | tee -a "$LOG_FILE"
