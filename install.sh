@@ -73,6 +73,9 @@ install_system_deps() {
         # Install Python and pip
         sudo apt install python3 python3-pip python3-venv -y
         
+        # Install git
+        sudo apt install git -y
+        
         # Install Node.js and npm
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt install -y nodejs
