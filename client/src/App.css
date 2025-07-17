@@ -171,3 +171,47 @@
 .main-content::-webkit-scrollbar-thumb:hover {
   background: #5a5a5a;
 } 
+
+.relays-section {
+  margin: 2rem 0;
+  padding: 1rem;
+  background: #23272f;
+  border-radius: 10px;
+}
+.relays-grid {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.relay-card {
+  background: #181c22;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  min-width: 160px;
+  box-shadow: 0 2px 8px #0002;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.relay-card h4 {
+  margin: 0 0 0.5rem 0;
+}
+.relay-card p {
+  margin: 0 0 1rem 0;
+}
+.relay-card button {
+  margin: 0.25rem 0;
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 5px;
+  background: #4ade80;
+  color: #222;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.relay-card button:disabled {
+  background: #444;
+  color: #aaa;
+  cursor: not-allowed;
+} 

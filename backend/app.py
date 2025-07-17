@@ -62,6 +62,29 @@ iot_devices = {
     }
 }
 
+try:
+    from gpiozero import Device, OutputDevice
+    from gpiozero.pins.lgpio import LGPIOFactory
+    Device.pin_factory = LGPIOFactory()
+    RELAY_ENABLED = True
+except ImportError:
+    # Not running on Raspberry Pi or gpiozero not installed
+    RELAY_ENABLED = False
+    OutputDevice = None
+
+# تعریف پین‌های رله (BCM)
+RELAY_PINS = {
+    "relay1": 17,  # GPIO17
+    "relay2": 27,  # GPIO27
+    "relay3": 22   # GPIO22
+}
+
+# نگهداری آبجکت‌های رله
+relays = {}
+if RELAY_ENABLED:
+    for relay_id, pin in RELAY_PINS.items():
+        relays[relay_id] = OutputDevice(pin)
+
 @app.route('/')
 def index():
     """Root endpoint"""
@@ -174,6 +197,35 @@ def system_stats():
 def get_config():
     """Get current configuration"""
     return jsonify(config)
+
+@app.route('/api/relays', methods=['GET'])
+def get_relays():
+    """لیست رله‌ها و وضعیت فعلی آن‌ها"""
+    if not RELAY_ENABLED:
+        return jsonify({"error": "Relay control not available on this system."}), 501
+    status = {relay_id: relays[relay_id].value for relay_id in relays}
+    return jsonify({"relays": status})
+
+@app.route('/api/relays/<relay_id>', methods=['POST'])
+def control_relay(relay_id):
+    """روشن یا خاموش کردن رله مشخص شده"""
+    if not RELAY_ENABLED:
+        return jsonify({"error": "Relay control not available on this system."}), 501
+    if relay_id not in relays:
+        return jsonify({"error": "Relay not found"}), 404
+    data = request.get_json()
+    if not data or "action" not in data:
+        return jsonify({"error": "Missing 'action' in request body"}), 400
+    action = data["action"].lower()
+    relay = relays[relay_id]
+    if action == "on":
+        relay.on()
+        return jsonify({"status": f"{relay_id} turned on"}), 200
+    elif action == "off":
+        relay.off()
+        return jsonify({"status": f"{relay_id} turned off"}), 200
+    else:
+        return jsonify({"error": "Invalid action, use 'on' or 'off'"}), 400
 
 @app.errorhandler(404)
 def not_found(error):
