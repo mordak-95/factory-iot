@@ -128,31 +128,35 @@ setup_kiosk() {
     fi
     
     log "Setting up kiosk mode..."
-    
-    # Create kiosk startup script
-    cat > ~/start-kiosk.sh << 'EOF'
+
+    # Add user to tty and video groups for X server permissions
+    sudo usermod -aG tty "$USER"
+    sudo usermod -aG video "$USER"
+
+    # Create kiosk startup script with logging
+    cat > "$HOME/start-kiosk.sh" << 'EOF'
 #!/bin/bash
+exec > "$HOME/kiosk.log" 2>&1
+set -x
 xset s off
 xset -dpms
 xset s noblank
-
-# Wait for the application to start
 sleep 10
-
 chromium-browser --noerrdialogs --disable-infobars --kiosk http://localhost:3000
 EOF
     
-    chmod +x ~/start-kiosk.sh
+    chmod +x "$HOME/start-kiosk.sh"
     
     # Create Openbox autostart
-    mkdir -p ~/.config/openbox
-    cat > ~/.config/openbox/autostart << 'EOF'
-~/start-kiosk.sh
+    mkdir -p "$HOME/.config/openbox"
+    cat > "$HOME/.config/openbox/autostart" << 'EOF'
+$HOME/start-kiosk.sh
 EOF
+    chmod +x "$HOME/.config/openbox/autostart"
     
-    # Setup auto-login and startx
-    if ! grep -q "startx" ~/.bash_profile; then
-        cat >> ~/.bash_profile << 'EOF'
+    # Setup auto-login and startx in .bash_profile
+    if ! grep -q "startx" "$HOME/.bash_profile" 2>/dev/null; then
+        cat >> "$HOME/.bash_profile" << 'EOF'
 
 # Auto-start X server on tty1
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
