@@ -391,9 +391,9 @@ EOF
 
 install_central_frontend() {
     log "Setting up central frontend..."
-    # نصب nodejs نسخه جدید از NodeSource برای اطمینان از وجود npx
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+    # نصب nodejs و npm برای اطمینان از وجود npx
+    sudo apt-get update
+    sudo apt-get install -y nodejs npm
     if [[ ! -d central-frontend ]]; then
         npx create-react-app central-frontend
     fi
