@@ -296,6 +296,15 @@ select_device_role() {
 
 install_postgresql() {
     log "Installing PostgreSQL (via Docker)..."
+    # رفع مشکل مخزن docker روی Raspberry Pi OS Bookworm
+    . /etc/os-release
+    if [[ "$VERSION_CODENAME" == "bookworm" ]]; then
+        log "Detected Bookworm. Fixing Docker repo for Debian on ARM..."
+        sudo rm -f /etc/apt/sources.list.d/docker.list
+        echo "deb [arch=arm64] https://download.docker.com/linux/debian bookworm stable" | sudo tee /etc/apt/sources.list.d/docker.list
+        curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        sudo apt-get update
+    fi
     if ! command -v docker &> /dev/null; then
         log "Docker not found. Installing Docker..."
         curl -fsSL https://get.docker.com -o get-docker.sh
