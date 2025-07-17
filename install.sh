@@ -60,58 +60,44 @@ install_system_deps() {
     
     if check_raspberry_pi; then
         log "Detected Raspberry Pi - installing Pi-specific dependencies..."
-        
         # Update system
         sudo apt update && sudo apt upgrade -y
-        
         # Install X server and display utilities
         sudo apt install --no-install-recommends xserver-xorg x11-xserver-utils xinit openbox -y
-        
         # Install Chromium for kiosk mode
         sudo apt install chromium-browser -y
-        
         # Install Python and pip
         sudo apt install python3 python3-pip python3-venv -y
-        
         # Install git
         sudo apt install git -y
-        
         # Install Node.js and npm
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt install -y nodejs
-        
         # نصب درایورهای fbdev و fbturbo
         sudo apt install -y xserver-xorg-video-fbdev xserver-xorg-video-fbturbo
-        
-        # ویرایش config.txt برای HDMI و GPU
+        # حذف تمام فایل‌های xorg.conf.d و xorg.conf
+        sudo rm -rf /etc/X11/xorg.conf.d/*
+        sudo rm -f /etc/X11/xorg.conf
+        log "Removed all xorg.conf.d and xorg.conf files."
+        # ویرایش config.txt برای استفاده از fkms به جای kms
         CONFIG_FILE="/boot/firmware/config.txt"
-        sudo grep -qxF 'dtoverlay=vc4-kms-v3d' "$CONFIG_FILE" || echo 'dtoverlay=vc4-kms-v3d' | sudo tee -a "$CONFIG_FILE"
+        # اگر dtoverlay=vc4-kms-v3d وجود دارد، آن را کامنت کن
+        if grep -q '^dtoverlay=vc4-kms-v3d' "$CONFIG_FILE"; then
+            sudo sed -i 's/^dtoverlay=vc4-kms-v3d/#dtoverlay=vc4-kms-v3d/' "$CONFIG_FILE"
+        fi
+        # اگر dtoverlay=vc4-fkms-v3d وجود ندارد، اضافه کن
+        if ! grep -q '^dtoverlay=vc4-fkms-v3d' "$CONFIG_FILE"; then
+            echo 'dtoverlay=vc4-fkms-v3d' | sudo tee -a "$CONFIG_FILE"
+        fi
+        # سایر تنظیمات HDMI و ...
         sudo grep -qxF 'max_framebuffers=2' "$CONFIG_FILE" || echo 'max_framebuffers=2' | sudo tee -a "$CONFIG_FILE"
         sudo grep -qxF 'hdmi_group=2' "$CONFIG_FILE" || echo 'hdmi_group=2' | sudo tee -a "$CONFIG_FILE"
         sudo grep -qxF 'hdmi_mode=82' "$CONFIG_FILE" || echo 'hdmi_mode=82' | sudo tee -a "$CONFIG_FILE"
-        
-        # حذف فایل مانیتور قبلی (در صورت وجود)
-        sudo rm -f /etc/X11/xorg.conf.d/10-monitor.conf
-
-        # فقط Section Device با Driver modesetting
-        sudo mkdir -p /etc/X11/xorg.conf.d
-        sudo tee /etc/X11/xorg.conf.d/10-device.conf > /dev/null << EOF
-Section "Device"
-    Identifier "Card0"
-    Driver "modesetting"
-    Option "PrimaryGPU" "true"
-EndSection
-EOF
-
-        # حذف فایل xorg.conf اصلی (در صورت وجود)
-        sudo rm -f /etc/X11/xorg.conf
-        
-        log "System dependencies installed successfully"
+        log "System dependencies and display config installed successfully"
     else
         log_warning "Not running on Raspberry Pi - installing basic dependencies..."
         sudo apt update
         sudo apt install python3 python3-pip python3-venv curl git -y
-        
         # Install Node.js
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt install -y nodejs
