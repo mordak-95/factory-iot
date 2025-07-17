@@ -168,6 +168,25 @@ def update_device_status(device_id):
 @app.route('/api/system/stats')
 def system_stats():
     """Get system statistics"""
+    # Get temperatures (chipset/CPU)
+    temps = None
+    try:
+        temp_data = psutil.sensors_temperatures()
+        if temp_data:
+            # Pick the first available sensor and its first value
+            for sensor_name, entries in temp_data.items():
+                if entries:
+                    temps = {
+                        'sensor': sensor_name,
+                        'label': entries[0].label,
+                        'current': entries[0].current,
+                        'high': entries[0].high,
+                        'critical': entries[0].critical
+                    }
+                    break
+    except Exception:
+        temps = None
+
     return jsonify({
         "cpu": {
             "percent": psutil.cpu_percent(interval=1),
@@ -190,6 +209,7 @@ def system_stats():
             "bytes_sent": psutil.net_io_counters().bytes_sent,
             "bytes_recv": psutil.net_io_counters().bytes_recv
         },
+        "temperature": temps,
         "timestamp": datetime.now().isoformat()
     })
 

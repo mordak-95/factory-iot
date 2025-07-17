@@ -111,6 +111,28 @@ const SystemStats = ({ stats }) => {
             </div>
           </div>
         </div>
+
+        {/* Chipset Temperature Card */}
+        {stats.temperature && stats.temperature.current !== undefined && (
+          <div className="stat-card">
+            <h3 className="stat-title">🌡️ Chipset Temp</h3>
+            <div className="stat-content">
+              <div className="stat-main">
+                <span className="stat-number">{stats.temperature.current.toFixed(1)}°C</span>
+                <span className="stat-unit">{stats.temperature.label || stats.temperature.sensor}</span>
+              </div>
+              <div className="stat-details">
+                {stats.temperature.high !== null && (
+                  <p>High: {stats.temperature.high}°C</p>
+                )}
+                {stats.temperature.critical !== null && (
+                  <p>Critical: {stats.temperature.critical}°C</p>
+                )}
+                <p>Sensor: {stats.temperature.sensor}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="stats-footer">
