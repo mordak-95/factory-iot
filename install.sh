@@ -332,9 +332,6 @@ EOF
 
 install_central_backend() {
     log "Setting up central backend..."
-    # نصب پیش‌نیازهای psycopg2-binary
-    sudo apt-get update
-    sudo apt-get install -y libpq-dev python3-dev build-essential
     if [[ ! -d central-backend ]]; then
         mkdir central-backend
     fi
