@@ -296,9 +296,8 @@ select_device_role() {
 
 install_postgresql() {
     log "Installing PostgreSQL (via Docker)..."
-    # حذف همه فایل‌ها و خطوط docker raspbian
-    sudo rm -f /etc/apt/sources.list.d/docker.list*
-    sudo rm -f /etc/apt/sources.list.d/*docker*
+    # حذف کامل هرگونه اشاره به docker raspbian
+    sudo rm -f /etc/apt/sources.list.d/docker.list
     sudo sed -i '/docker/d' /etc/apt/sources.list
     sudo sed -i '/docker/d' /etc/apt/sources.list.d/*.list 2>/dev/null || true
     # رفع مشکل مخزن docker روی Raspberry Pi OS Bookworm
