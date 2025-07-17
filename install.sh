@@ -122,18 +122,11 @@ install_frontend() {
 
 # Function to setup kiosk mode
 setup_kiosk() {
-    if ! check_raspberry_pi; then
-        log_warning "Kiosk mode setup skipped - not running on Raspberry Pi"
-        return
-    fi
-    
     log "Setting up kiosk mode..."
 
-    # Add user to tty and video groups for X server permissions
     sudo usermod -aG tty "$USER"
     sudo usermod -aG video "$USER"
 
-    # Create kiosk startup script with logging
     cat > "$HOME/start-kiosk.sh" << 'EOF'
 #!/bin/bash
 exec > "$HOME/kiosk.log" 2>&1
@@ -144,17 +137,15 @@ xset s noblank
 sleep 10
 chromium-browser --noerrdialogs --disable-infobars --kiosk http://localhost:3000
 EOF
-    
+
     chmod +x "$HOME/start-kiosk.sh"
-    
-    # Create Openbox autostart
+
     mkdir -p "$HOME/.config/openbox"
     cat > "$HOME/.config/openbox/autostart" << 'EOF'
 $HOME/start-kiosk.sh
 EOF
     chmod +x "$HOME/.config/openbox/autostart"
-    
-    # Setup auto-login and startx in .bash_profile
+
     if ! grep -q "startx" "$HOME/.bash_profile" 2>/dev/null; then
         cat >> "$HOME/.bash_profile" << 'EOF'
 
@@ -164,7 +155,7 @@ if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
 fi
 EOF
     fi
-    
+
     log "Kiosk mode setup completed"
 }
 
