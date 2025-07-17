@@ -356,28 +356,7 @@ EOF
     pip install -r requirements.txt
     deactivate
     cd ..
-    # ساخت systemd service
-    CENTRAL_BACKEND_PATH="$(pwd)/central-backend"
-    sudo tee /etc/systemd/system/factory-iot-central-backend.service > /dev/null << EOF
-[Unit]
-Description=Factory IoT Central Backend
-After=network.target docker.service
-
-[Service]
-Type=simple
-User=$USER
-WorkingDirectory=$CENTRAL_BACKEND_PATH
-Environment=PATH=$CENTRAL_BACKEND_PATH/venv/bin
-ExecStart=$CENTRAL_BACKEND_PATH/venv/bin/python app.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    sudo systemctl daemon-reload
-    sudo systemctl enable factory-iot-central-backend.service
-    sudo systemctl restart factory-iot-central-backend.service
-    log "Central backend systemd service created and started."
+    log "Central backend created."
 }
 
 install_central_frontend() {
@@ -385,32 +364,7 @@ install_central_frontend() {
     if [[ ! -d central-frontend ]]; then
         npx create-react-app central-frontend
     fi
-    cd central-frontend
-    npm install
-    npm run build
-    npx npm install -g serve
-    cd ..
-    # ساخت systemd service
-    CENTRAL_FRONTEND_PATH="$(pwd)/central-frontend"
-    sudo tee /etc/systemd/system/factory-iot-central-frontend.service > /dev/null << EOF
-[Unit]
-Description=Factory IoT Central Frontend
-After=network.target
-
-[Service]
-Type=simple
-User=$USER
-WorkingDirectory=$CENTRAL_FRONTEND_PATH
-ExecStart=npx serve -s build -l 3000
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    sudo systemctl daemon-reload
-    sudo systemctl enable factory-iot-central-frontend.service
-    sudo systemctl restart factory-iot-central-frontend.service
-    log "Central frontend systemd service created and started."
+    log "Central frontend created."
 }
 
 # --- اجرای نصب بر اساس نقش ---
@@ -422,11 +376,6 @@ main_install() {
         install_central_backend
         install_central_frontend
         log "Central server installation complete!"
-        echo -e "\n==================== INFO ===================="
-        echo -e "MongoDB:      mongodb://localhost:27017/"
-        echo -e "Backend API:  http://localhost:5001/"
-        echo -e "Frontend UI:  http://localhost:3000/"
-        echo -e "============================================="
         exit 0
     fi
 
