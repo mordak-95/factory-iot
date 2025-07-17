@@ -244,6 +244,7 @@ show_status() {
 
 # Main installation function
 main_install() {
+    set -x
     log "Starting Factory IoT installation..."
     
     # Check if running as root
@@ -256,40 +257,47 @@ main_install() {
     touch "$LOG_FILE"
     
     # Install system dependencies
-    install_system_deps
+    log "Installing system dependencies..." | tee -a "$LOG_FILE"
+    install_system_deps | tee -a "$LOG_FILE"
     
     # Clone repository
-    clone_repository
+    log "Cloning repository..." | tee -a "$LOG_FILE"
+    clone_repository | tee -a "$LOG_FILE"
     
     # Install backend
-    install_backend
+    log "Installing backend..." | tee -a "$LOG_FILE"
+    install_backend | tee -a "$LOG_FILE"
     
     # Install frontend
-    install_frontend
+    log "Installing frontend..." | tee -a "$LOG_FILE"
+    install_frontend | tee -a "$LOG_FILE"
     
     # Setup kiosk mode
-    setup_kiosk
+    log "Setting up kiosk mode..." | tee -a "$LOG_FILE"
+    setup_kiosk | tee -a "$LOG_FILE"
     
     # Create services
-    create_services
+    log "Creating services..." | tee -a "$LOG_FILE"
+    create_services | tee -a "$LOG_FILE"
     
     # Start services
-    start_services
+    log "Starting services..." | tee -a "$LOG_FILE"
+    start_services | tee -a "$LOG_FILE"
     
-    log "Installation completed successfully!"
+    log "Installation completed successfully!" | tee -a "$LOG_FILE"
     
-    echo -e "\n${GREEN}================================${NC}"
-    echo -e "${GREEN}  Factory IoT Installation Complete!${NC}"
-    echo -e "${GREEN}================================${NC}"
-    echo -e "Frontend: ${BLUE}http://localhost:3000${NC}"
-    echo -e "Backend:  ${BLUE}http://localhost:5000${NC}"
-    echo -e "Log file: ${BLUE}$LOG_FILE${NC}"
-    echo -e "\n${YELLOW}To check status:${NC}"
-    echo -e "  systemctl status factory-iot-backend.service"
-    echo -e "  systemctl status factory-iot-frontend.service"
-    echo -e "\n${YELLOW}To view logs:${NC}"
-    echo -e "  journalctl -u factory-iot-backend.service -f"
-    echo -e "  journalctl -u factory-iot-frontend.service -f"
+    echo -e "\n${GREEN}================================${NC}" | tee -a "$LOG_FILE"
+    echo -e "${GREEN}  Factory IoT Installation Complete!${NC}" | tee -a "$LOG_FILE"
+    echo -e "${GREEN}================================${NC}" | tee -a "$LOG_FILE"
+    echo -e "Frontend: ${BLUE}http://localhost:3000${NC}" | tee -a "$LOG_FILE"
+    echo -e "Backend:  ${BLUE}http://localhost:5000${NC}" | tee -a "$LOG_FILE"
+    echo -e "Log file: ${BLUE}$LOG_FILE${NC}" | tee -a "$LOG_FILE"
+    echo -e "\n${YELLOW}To check status:${NC}" | tee -a "$LOG_FILE"
+    echo -e "  systemctl status factory-iot-backend.service" | tee -a "$LOG_FILE"
+    echo -e "  systemctl status factory-iot-frontend.service" | tee -a "$LOG_FILE"
+    echo -e "\n${YELLOW}To view logs:${NC}" | tee -a "$LOG_FILE"
+    echo -e "  journalctl -u factory-iot-backend.service -f" | tee -a "$LOG_FILE"
+    echo -e "  journalctl -u factory-iot-frontend.service -f" | tee -a "$LOG_FILE"
 }
 
 # Run main installation
