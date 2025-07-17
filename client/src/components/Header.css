@@ -36,43 +36,6 @@
   margin-top: 2px;
 }
 
-.connection-status {
-  margin-top: 5px;
-}
-
-.status-connected {
-  color: #4ade80;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(74, 222, 128, 0.1);
-  padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  animation: pulse 2s infinite;
-}
-
-.status-fallback {
-  color: #f87171;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(248, 113, 113, 0.1);
-  padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(248, 113, 113, 0.3);
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
-  }
-}
-
 .header-right {
   display: flex;
   align-items: center;
@@ -107,16 +70,6 @@
   
   .header-subtitle {
     font-size: 12px;
-  }
-  
-  .connection-status {
-    margin-top: 3px;
-  }
-  
-  .status-connected,
-  .status-fallback {
-    font-size: 11px;
-    padding: 1px 6px;
   }
   
   .last-update {

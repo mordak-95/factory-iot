@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Factory IoT Backend
-A Flask-based REST API with WebSocket support for factory IoT management
+A Flask-based REST API for factory IoT management
 """
 
 import os
@@ -10,13 +10,9 @@ import psutil
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
-import threading
-import time
 
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Load configuration
 def load_config():
@@ -89,109 +85,6 @@ if RELAY_ENABLED:
     for relay_id, pin in RELAY_PINS.items():
         relays[relay_id] = OutputDevice(pin)
 
-# WebSocket event handlers
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection"""
-    print(f'Client connected: {request.sid}')
-    emit('connected', {'data': 'Connected to Factory IoT System'})
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Handle client disconnection"""
-    print(f'Client disconnected: {request.sid}')
-
-@socketio.on('request_devices')
-def handle_request_devices():
-    """Send current devices data to client"""
-    emit('devices_update', {
-        'devices': list(iot_devices.values()),
-        'count': len(iot_devices),
-        'timestamp': datetime.now().isoformat()
-    })
-
-@socketio.on('request_system_stats')
-def handle_request_system_stats():
-    """Send current system stats to client"""
-    stats = get_system_stats()
-    emit('system_stats_update', stats)
-
-@socketio.on('request_relays')
-def handle_request_relays():
-    """Send current relay status to client"""
-    if RELAY_ENABLED:
-        status = {relay_id: relays[relay_id].value for relay_id in relays}
-        emit('relays_update', {'relays': status})
-    else:
-        emit('relays_update', {'error': 'Relay control not available'})
-
-def broadcast_devices_update():
-    """Broadcast devices update to all connected clients"""
-    socketio.emit('devices_update', {
-        'devices': list(iot_devices.values()),
-        'count': len(iot_devices),
-        'timestamp': datetime.now().isoformat()
-    })
-
-def broadcast_system_stats():
-    """Broadcast system stats to all connected clients"""
-    stats = get_system_stats()
-    socketio.emit('system_stats_update', stats)
-
-def broadcast_relays_update():
-    """Broadcast relay status to all connected clients"""
-    if RELAY_ENABLED:
-        status = {relay_id: relays[relay_id].value for relay_id in relays}
-        socketio.emit('relays_update', {'relays': status})
-
-def get_system_stats():
-    """Get system statistics"""
-    # Get temperatures (chipset/CPU)
-    temps = None
-    try:
-        temp_data = psutil.sensors_temperatures()
-        if temp_data:
-            # Pick the first available sensor and its first value
-            for sensor_name, entries in temp_data.items():
-                if entries:
-                    temps = {
-                        'sensor': sensor_name,
-                        'label': entries[0].label,
-                        'current': entries[0].current,
-                        'high': entries[0].high,
-                        'critical': entries[0].critical
-                    }
-                    break
-    except Exception:
-        temps = None
-
-    return {
-        "cpu": {
-            "percent": psutil.cpu_percent(interval=1),
-            "count": psutil.cpu_count(),
-            "frequency": psutil.cpu_freq()._asdict() if psutil.cpu_freq() else None
-        },
-        "memory": {
-            "total": psutil.virtual_memory().total,
-            "available": psutil.virtual_memory().available,
-            "percent": psutil.virtual_memory().percent,
-            "used": psutil.virtual_memory().used
-        },
-        "disk": {
-            "total": psutil.disk_usage('/').total,
-            "used": psutil.disk_usage('/').used,
-            "free": psutil.disk_usage('/').free,
-            "percent": psutil.disk_usage('/').percent
-        },
-        "network": {
-            "bytes_sent": psutil.net_io_counters().bytes_sent,
-            "bytes_recv": psutil.net_io_counters().bytes_recv
-        },
-        "temperature": temps,
-        "timestamp": datetime.now().isoformat()
-    }
-
-# REST API endpoints
 @app.route('/')
 def index():
     """Root endpoint"""
@@ -245,9 +138,6 @@ def update_device_value(device_id):
     iot_devices[device_id]['value'] = data['value']
     iot_devices[device_id]['last_update'] = datetime.now().isoformat()
     
-    # Broadcast update to all connected clients
-    broadcast_devices_update()
-    
     return jsonify({
         "message": "Device value updated",
         "device": iot_devices[device_id]
@@ -270,9 +160,6 @@ def update_device_status(device_id):
     iot_devices[device_id]['status'] = data['status']
     iot_devices[device_id]['last_update'] = datetime.now().isoformat()
     
-    # Broadcast update to all connected clients
-    broadcast_devices_update()
-    
     return jsonify({
         "message": "Device status updated",
         "device": iot_devices[device_id]
@@ -281,7 +168,50 @@ def update_device_status(device_id):
 @app.route('/api/system/stats')
 def system_stats():
     """Get system statistics"""
-    return jsonify(get_system_stats())
+    # Get temperatures (chipset/CPU)
+    temps = None
+    try:
+        temp_data = psutil.sensors_temperatures()
+        if temp_data:
+            # Pick the first available sensor and its first value
+            for sensor_name, entries in temp_data.items():
+                if entries:
+                    temps = {
+                        'sensor': sensor_name,
+                        'label': entries[0].label,
+                        'current': entries[0].current,
+                        'high': entries[0].high,
+                        'critical': entries[0].critical
+                    }
+                    break
+    except Exception:
+        temps = None
+
+    return jsonify({
+        "cpu": {
+            "percent": psutil.cpu_percent(interval=1),
+            "count": psutil.cpu_count(),
+            "frequency": psutil.cpu_freq()._asdict() if psutil.cpu_freq() else None
+        },
+        "memory": {
+            "total": psutil.virtual_memory().total,
+            "available": psutil.virtual_memory().available,
+            "percent": psutil.virtual_memory().percent,
+            "used": psutil.virtual_memory().used
+        },
+        "disk": {
+            "total": psutil.disk_usage('/').total,
+            "used": psutil.disk_usage('/').used,
+            "free": psutil.disk_usage('/').free,
+            "percent": psutil.disk_usage('/').percent
+        },
+        "network": {
+            "bytes_sent": psutil.net_io_counters().bytes_sent,
+            "bytes_recv": psutil.net_io_counters().bytes_recv
+        },
+        "temperature": temps,
+        "timestamp": datetime.now().isoformat()
+    })
 
 @app.route('/api/config')
 def get_config():
@@ -310,13 +240,9 @@ def control_relay(relay_id):
     relay = relays[relay_id]
     if action == "on":
         relay.on()
-        # Broadcast relay update to all connected clients
-        broadcast_relays_update()
         return jsonify({"status": f"{relay_id} turned on"}), 200
     elif action == "off":
         relay.off()
-        # Broadcast relay update to all connected clients
-        broadcast_relays_update()
         return jsonify({"status": f"{relay_id} turned off"}), 200
     else:
         return jsonify({"error": "Invalid action, use 'on' or 'off'"}), 400
@@ -330,17 +256,9 @@ def internal_error(error):
     return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
-    # Start background thread for periodic system stats updates
-    def background_stats():
-        while True:
-            time.sleep(2)  # Update every 2 seconds
-            broadcast_system_stats()
+    port = config.get('backend', {}).get('port', 5000)
+    host = config.get('backend', {}).get('host', '0.0.0.0')
+    debug = config.get('backend', {}).get('debug', False)
     
-    stats_thread = threading.Thread(target=background_stats, daemon=True)
-    stats_thread.start()
-    
-    # Run the application with SocketIO
-    socketio.run(app, 
-                host=config.get('backend', {}).get('host', '0.0.0.0'),
-                port=config.get('backend', {}).get('port', 5000),
-                debug=config.get('backend', {}).get('debug', False)) 
+    print(f"Starting Factory IoT Backend on {host}:{port}")
+    app.run(host=host, port=port, debug=debug) 
