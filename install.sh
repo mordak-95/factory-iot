@@ -391,6 +391,9 @@ EOF
 
 install_central_frontend() {
     log "Setting up central frontend..."
+    # نصب nodejs و npm برای اطمینان از وجود npx
+    sudo apt-get update
+    sudo apt-get install -y nodejs npm
     if [[ ! -d central-frontend ]]; then
         npx create-react-app central-frontend
     fi
