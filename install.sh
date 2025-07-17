@@ -303,12 +303,6 @@ install_mongodb() {
         sh get-docker.sh
         sudo usermod -aG docker $USER
         rm get-docker.sh
-        # اجرای مجدد اسکریپت با گروه docker برای فعال شدن دسترسی بدون logout/login
-        if ! groups $USER | grep -q docker; then
-            log "Re-executing script with docker group (no logout needed)..."
-            exec sg docker "$0"
-            exit 0
-        fi
     fi
     if ! command -v docker-compose &> /dev/null; then
         log "Docker Compose not found. Installing Docker Compose..."
