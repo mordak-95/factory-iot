@@ -308,24 +308,13 @@ install_mongodb() {
         log "Docker Compose not found. Installing Docker Compose..."
         sudo apt-get install -y docker-compose
     fi
-    # انتخاب هوشمند ایمیج MongoDB بر اساس معماری
+    # انتخاب ایمیج مناسب MongoDB
     ARCH=$(uname -m)
-    case "$ARCH" in
-      x86_64|amd64)
-        MONGO_IMAGE="mongo:6"
-        ;;
-      aarch64)
-        MONGO_IMAGE="iotdb/mongo-arm64:latest"
-        ;;
-      armv7l)
-        MONGO_IMAGE="iotdb/mongo-arm32:latest"
-        ;;
-      *)
-        echo "Unsupported architecture: $ARCH"
-        echo "Please install MongoDB manually or use a supported platform."
-        exit 1
-        ;;
-    esac
+    if [[ $ARCH == "aarch64" || $ARCH == "armv7l" ]]; then
+      MONGO_IMAGE="bubuntux/mongo-arm:latest"
+    else
+      MONGO_IMAGE="mongo:6"
+    fi
     log "Using MongoDB image: $MONGO_IMAGE for architecture: $ARCH"
     # ایجاد فایل docker-compose.yml برای MongoDB
     sudo tee docker-compose.yml > /dev/null << EOF
@@ -339,13 +328,6 @@ services:
     volumes:
       - ./mongo-data:/data/db
 EOF
-    # تست pull ایمیج قبل از اجرای docker-compose
-    if ! sudo docker pull $MONGO_IMAGE; then
-      echo "\n[ERROR] MongoDB image $MONGO_IMAGE not found or not supported on this architecture ($ARCH)."
-      echo "If you are on Raspberry Pi, try native install: sudo apt install mongodb"
-      echo "Or use a supported platform."
-      exit 1
-    fi
     sudo docker-compose up -d
     log "MongoDB started via Docker Compose."
 }
