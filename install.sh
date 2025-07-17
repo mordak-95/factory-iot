@@ -308,18 +308,24 @@ install_mongodb() {
         log "Docker Compose not found. Installing Docker Compose..."
         sudo apt-get install -y docker-compose
     fi
-    # انتخاب ایمیج رسمی MongoDB فقط برای x86_64
+    # انتخاب هوشمند ایمیج MongoDB بر اساس معماری
     ARCH=$(uname -m)
-    if [[ $ARCH == "x86_64" || $ARCH == "amd64" ]]; then
-      MONGO_IMAGE="mongo:6"
-    else
-      echo "[ERROR] No official MongoDB Docker image for ARM architecture ($ARCH)."
-      echo "Recommended:"
-      echo "  1. Run the central server on an x86_64 machine (even a small VPS/VM)."
-      echo "  2. Or install MongoDB natively (old version) with: sudo apt install mongodb"
-      echo "  3. Or use a different database (MariaDB/PostgreSQL) if possible."
-      exit 1
-    fi
+    case "$ARCH" in
+      x86_64|amd64)
+        MONGO_IMAGE="mongo:6"
+        ;;
+      aarch64)
+        MONGO_IMAGE="iotdb/mongo-arm64:latest"
+        ;;
+      armv7l)
+        MONGO_IMAGE="iotdb/mongo-arm32:latest"
+        ;;
+      *)
+        echo "Unsupported architecture: $ARCH"
+        echo "Please install MongoDB manually or use a supported platform."
+        exit 1
+        ;;
+    esac
     log "Using MongoDB image: $MONGO_IMAGE for architecture: $ARCH"
     # ایجاد فایل docker-compose.yml برای MongoDB
     sudo tee docker-compose.yml > /dev/null << EOF
