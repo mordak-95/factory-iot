@@ -174,6 +174,20 @@ EOF
     log "Kiosk mode setup completed"
 }
 
+# Function to enable autologin on tty1
+setup_autologin() {
+    log "Enabling autologin for user $USER on tty1..."
+    sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
+    sudo tee /etc/systemd/system/getty@tty1.service.d/override.conf > /dev/null << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $USER --noclear %I $TERM
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl restart getty@tty1
+    log "Autologin enabled on tty1."
+}
+
 # Function to create systemd services
 create_services() {
     log "Creating systemd services..."
@@ -284,6 +298,9 @@ main_install() {
 
     log "Setting up kiosk mode..."
     setup_kiosk
+
+    # فعال‌سازی autologin
+    setup_autologin
 
     log "Creating services..."
     create_services

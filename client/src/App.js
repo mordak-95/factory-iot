@@ -99,6 +99,18 @@ function App() {
     );
   }
 
+  // Helper: Relay DeviceCard props
+  const relayCards = Object.keys(relays).map(relayId => ({
+    id: relayId,
+    name: relayId.toUpperCase(),
+    type: 'relay',
+    value: relays[relayId] ? 'ON' : 'OFF',
+    unit: '',
+    status: relays[relayId] ? 'active' : 'inactive',
+    last_update: '',
+    isRelay: true
+  }));
+
   return (
     <div className="app">
       <Header lastUpdate={lastUpdate} />
@@ -115,6 +127,7 @@ function App() {
           <div className="devices-section">
             <h2>IoT Devices</h2>
             <div className="devices-grid">
+              {/* نمایش دستگاه‌ها */}
               {devices.map(device => (
                 <DeviceCard
                   key={device.id}
@@ -123,35 +136,17 @@ function App() {
                   onUpdateStatus={updateDeviceStatus}
                 />
               ))}
-            </div>
-          </div>
-
-          {/* کنترل رله‌ها */}
-          <div className="relays-section">
-            <h2>Relay Control</h2>
-            {relayError && <div className="error-banner">{relayError}</div>}
-            <div className="relays-grid">
-              {Object.keys(relays).map(relayId => (
-                <div key={relayId} className="relay-card">
-                  <h4>{relayId.toUpperCase()}</h4>
-                  <p>Status: {relays[relayId] ? 'ON' : 'OFF'}</p>
-                  <button
-                    onClick={() => controlRelay(relayId, 'on')}
-                    disabled={relays[relayId]}
-                  >
-                    Turn ON
-                  </button>
-                  <button
-                    onClick={() => controlRelay(relayId, 'off')}
-                    disabled={!relays[relayId]}
-                  >
-                    Turn OFF
-                  </button>
-                </div>
+              {/* نمایش رله‌ها به صورت DeviceCard */}
+              {relayCards.map(relay => (
+                <DeviceCard
+                  key={relay.id}
+                  device={relay}
+                  onRelayControl={(action) => controlRelay(relay.id, action)}
+                  isRelay
+                />
               ))}
             </div>
           </div>
-
           <div className="stats-section">
             <h2>System Statistics</h2>
             {systemStats && <SystemStats stats={systemStats} />}

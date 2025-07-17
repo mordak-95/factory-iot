@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './DeviceCard.css';
 
-const DeviceCard = ({ device, onUpdateValue, onUpdateStatus }) => {
+const DeviceCard = ({ device, onUpdateValue, onUpdateStatus, onRelayControl, isRelay }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newValue, setNewValue] = useState(device.value);
 
@@ -22,6 +22,7 @@ const DeviceCard = ({ device, onUpdateValue, onUpdateStatus }) => {
       case 'conveyor': return '🔄';
       case 'pressure': return '📊';
       case 'level': return '📈';
+      case 'relay': return '🔌';
       default: return '📡';
     }
   };
@@ -57,67 +58,93 @@ const DeviceCard = ({ device, onUpdateValue, onUpdateStatus }) => {
       </div>
 
       <div className="device-body">
-        <div className="device-value-section">
-          <label className="value-label">Current Value:</label>
-          {isEditing ? (
-            <div className="value-edit">
-              <input
-                type="number"
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
-                className="value-input"
-                step="0.1"
-              />
-              <div className="value-actions">
-                <button 
-                  onClick={handleValueUpdate}
-                  className="btn-save"
-                >
-                  Save
-                </button>
-                <button 
-                  onClick={() => setIsEditing(false)}
-                  className="btn-cancel"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
+        {isRelay ? (
+          <div className="device-value-section">
+            <label className="value-label">Relay Control:</label>
             <div className="value-display">
               <span className="value-number">{device.value}</span>
-              <span className="value-unit">{device.unit}</span>
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="btn-edit"
+            </div>
+            <div className="value-actions">
+              <button
+                className="btn-save"
+                onClick={() => onRelayControl('on')}
+                disabled={device.value === 'ON'}
               >
-                Edit
+                Turn ON
+              </button>
+              <button
+                className="btn-cancel"
+                onClick={() => onRelayControl('off')}
+                disabled={device.value === 'OFF'}
+              >
+                Turn OFF
               </button>
             </div>
-          )}
-        </div>
-
-        <div className="device-controls">
-          <label className="control-label">Status Control:</label>
-          <div className="status-buttons">
-            {['active', 'inactive', 'maintenance', 'error'].map(status => (
-              <button
-                key={status}
-                onClick={() => handleStatusChange(status)}
-                className={`status-btn ${device.status === status ? 'active' : ''}`}
-                style={{
-                  backgroundColor: device.status === status ? getStatusColor(status) : '#3a3a3a'
-                }}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="device-value-section">
+              <label className="value-label">Current Value:</label>
+              {isEditing ? (
+                <div className="value-edit">
+                  <input
+                    type="number"
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    className="value-input"
+                    step="0.1"
+                  />
+                  <div className="value-actions">
+                    <button 
+                      onClick={handleValueUpdate}
+                      className="btn-save"
+                    >
+                      Save
+                    </button>
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      className="btn-cancel"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="value-display">
+                  <span className="value-number">{device.value}</span>
+                  <span className="value-unit">{device.unit}</span>
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="btn-edit"
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
+            </div>
 
+            <div className="device-controls">
+              <label className="control-label">Status Control:</label>
+              <div className="status-buttons">
+                {['active', 'inactive', 'maintenance', 'error'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => handleStatusChange(status)}
+                    className={`status-btn ${device.status === status ? 'active' : ''}`}
+                    style={{
+                      backgroundColor: device.status === status ? getStatusColor(status) : '#3a3a3a'
+                    }}
+                  >
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
         <div className="device-footer">
           <span className="last-update">
-            Last Update: {formatLastUpdate(device.last_update)}
+            {device.last_update && <>Last Update: {formatLastUpdate(device.last_update)}</>}
           </span>
         </div>
       </div>
