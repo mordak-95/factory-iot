@@ -274,9 +274,110 @@ show_status() {
     echo "$LOG_FILE"
 }
 
-# Main installation function
+# --- نقش دستگاه را از کاربر بپرس ---
+select_device_role() {
+    echo "\nSelect device role:" >&2
+    select role in "Central Server" "Device Controller"; do
+        case $REPLY in
+            1)
+                DEVICE_ROLE="central"
+                break
+                ;;
+            2)
+                DEVICE_ROLE="controller"
+                break
+                ;;
+            *)
+                echo "Invalid option. Please select 1 or 2." >&2
+                ;;
+        esac
+    done
+}
+
+# --- نصب سرور مرکزی ---
+install_mongodb() {
+    log "Installing MongoDB (via Docker)..."
+    if ! command -v docker &> /dev/null; then
+        log "Docker not found. Installing Docker..."
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sh get-docker.sh
+        sudo usermod -aG docker $USER
+        rm get-docker.sh
+    fi
+    if ! command -v docker-compose &> /dev/null; then
+        log "Docker Compose not found. Installing Docker Compose..."
+        sudo apt-get install -y docker-compose
+    fi
+    # ایجاد فایل docker-compose.yml برای MongoDB
+    cat > docker-compose.yml << 'EOF'
+version: '3.1'
+services:
+  mongo:
+    image: mongo:6
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo-data:/data/db
+EOF
+    docker-compose up -d
+    log "MongoDB started via Docker Compose."
+}
+
+install_central_backend() {
+    log "Setting up central backend..."
+    if [[ ! -d central-backend ]]; then
+        mkdir central-backend
+    fi
+    cd central-backend
+    # ایجاد فایل requirements.txt
+    cat > requirements.txt << 'EOF'
+Flask
+Flask-CORS
+pymongo
+python-dotenv
+EOF
+    # ایجاد فایل app.py ساده (TODO: بعداً کامل می‌شود)
+    cat > app.py << 'EOF'
+from flask import Flask
+from flask_cors import CORS
+app = Flask(__name__)
+CORS(app)
+@app.route('/')
+def index():
+    return {'msg': 'Central Backend Running'}
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001)
+EOF
+    # نصب وابستگی‌ها
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    deactivate
+    cd ..
+    log "Central backend created."
+}
+
+install_central_frontend() {
+    log "Setting up central frontend..."
+    if [[ ! -d central-frontend ]]; then
+        npx create-react-app central-frontend
+    fi
+    log "Central frontend created."
+}
+
+# --- اجرای نصب بر اساس نقش ---
 main_install() {
     log "Starting Factory IoT installation..."
+    select_device_role
+    if [[ "$DEVICE_ROLE" == "central" ]]; then
+        install_mongodb
+        install_central_backend
+        install_central_frontend
+        log "Central server installation complete!"
+        exit 0
+    fi
 
     # Check if running as root
     if [[ $EUID -eq 0 ]]; then
