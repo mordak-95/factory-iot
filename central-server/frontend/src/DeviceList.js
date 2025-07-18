@@ -137,7 +137,7 @@ function DeviceList() {
             </tr>
           </thead>
           <tbody>
-            {devices.map(device => (
+            {devices.slice().sort((a, b) => a.id - b.id).map(device => (
               <tr key={device.id} className="border-b border-gray-700 hover:bg-gray-700/30">
                 <td className="py-2 font-semibold">{device.name}</td>
                 <td className="py-2">{device.ip_address || '-'}</td>

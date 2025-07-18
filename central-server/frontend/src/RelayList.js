@@ -154,7 +154,7 @@ function RelayList() {
             </tr>
           </thead>
           <tbody>
-            {relays.map(relay => (
+            {relays.slice().sort((a, b) => a.id - b.id).map(relay => (
               <tr key={relay.id} className="border-b border-gray-700 hover:bg-gray-700/30">
                 <td className="py-2 font-semibold">{relay.name}</td>
                 <td className="py-2">{relay.gpio_pin}</td>
