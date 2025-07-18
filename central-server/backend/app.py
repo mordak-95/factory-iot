@@ -3,6 +3,7 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 from flask_cors import CORS
+from models import Base, get_engine
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -14,6 +15,10 @@ DB_USER = os.getenv('DB_USER', 'postgres')
 DB_PASS = os.getenv('DB_PASS', 'password')
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = os.getenv('DB_PORT', '5432')
+
+# Auto-migrate: create tables if not exist (safe, non-destructive)
+engine = get_engine()
+Base.metadata.create_all(engine)
 
 @app.route('/')
 def index():
