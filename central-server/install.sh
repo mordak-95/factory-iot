@@ -115,28 +115,9 @@ echo "[6/8] Setting up frontend..."
 cd "$PROJECT_DIR/frontend"
 npm install
 
-# Ensure tailwind.config.js exists
-if [ ! -f "tailwind.config.js" ]; then
-  echo "Initializing Tailwind CSS config..."
-  npx tailwindcss init
-fi
-
-# Ensure index.css exists with Tailwind imports
-if [ ! -f "src/index.css" ]; then
-  cat > src/index.css <<EOF
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-body {
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  background-color: #0f172a;
-}
-EOF
-fi
 
 npm run build
-nohup npm start -- --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
+nohup npm run preview -- --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 cd "$PROJECT_DIR"
 

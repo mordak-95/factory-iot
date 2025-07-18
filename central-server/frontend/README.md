@@ -13,7 +13,7 @@ This project uses [Tailwind CSS](https://tailwindcss.com/) for all styling. All 
 - To build: `npm run build`
 
 ## Customizing Theme
-Edit `tailwind.config.js` to adjust colors, fonts, or extend the theme.
+A default `tailwind.config.js` will be auto-generated if missing. Edit it to adjust colors, fonts, or extend the theme.
 
 ## Removing Old CSS
 No `.css` files are used except for Tailwind imports. If you add new components, use Tailwind classes only. 
