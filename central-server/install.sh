@@ -130,7 +130,7 @@ cd "$PROJECT_DIR/frontend"
 npm install
 
 
-npm run build
+# npm run build
 nohup npm start -- --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 cd "$PROJECT_DIR"
