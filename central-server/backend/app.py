@@ -1,16 +1,41 @@
-from flask import Flask
+from flask import Flask, jsonify
 import psycopg2
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
-# TODO: اطلاعات اتصال به دیتابیس را از تنظیمات بخوانید
-conn = psycopg2.connect(
-    dbname='central_db', user='postgres', password='password', host='localhost', port='5432'
-)
+# Load environment variables from .env
+load_dotenv()
+DB_NAME = os.getenv('DB_NAME', 'central_db')
+DB_USER = os.getenv('DB_USER', 'postgres')
+DB_PASS = os.getenv('DB_PASS', 'password')
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PORT = os.getenv('DB_PORT', '5432')
 
 @app.route('/')
 def index():
     return 'Central Server Backend is running.'
+
+@app.route('/health')
+def health():
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASS,
+            host=DB_HOST,
+            port=DB_PORT,
+            connect_timeout=3
+        )
+        cur = conn.cursor()
+        cur.execute('SELECT 1;')
+        cur.fetchone()
+        cur.close()
+        conn.close()
+        return jsonify({"status": "ok", "db": "ok"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "db": "unreachable", "error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000) 
