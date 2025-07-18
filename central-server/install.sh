@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
 
+# Backup .env outside the project before deleting everything
+ENV_ORIG="$HOME/factory-iot/central-server/backend/.env"
+ENV_TMP="/tmp/central-server.env.bak"
+if [ -f "$ENV_ORIG" ]; then
+  cp "$ENV_ORIG" "$ENV_TMP"
+fi
+
 # Always remove any previous central-server code and clone the latest version
 if [ -d "$HOME/factory-iot" ]; then
   echo "Removing previous factory-iot directory..."
@@ -18,6 +25,13 @@ fi
 
 cd "$PROJECT_DIR"
 
+# Restore .env if backup exists (after clone, before any backend config)
+ENV_PATH="$PROJECT_DIR/backend/.env"
+if [ -f "$ENV_TMP" ]; then
+  cp "$ENV_TMP" "$ENV_PATH"
+  rm "$ENV_TMP"
+fi
+
 # Settings
 DB_NAME="central_db"
 DB_USER="postgres"
@@ -26,23 +40,11 @@ DB_HOST="localhost"
 BACKEND_PORT="5000"
 FRONTEND_PORT="3000"
 
-# Backup .env if exists before cleanup
-ENV_PATH="$PROJECT_DIR/backend/.env"
-ENV_BAK_PATH="$PROJECT_DIR/backend/.env.bak"
-if [ -f "$ENV_PATH" ]; then
-  cp "$ENV_PATH" "$ENV_BAK_PATH"
-fi
-
 # Clean up previous installations (just in case)
 echo "[0/8] Cleaning up previous installations..."
 rm -rf "$PROJECT_DIR/backend/venv" "$PROJECT_DIR/backend.log" "$PROJECT_DIR/frontend.log"
 if [ -d "$PROJECT_DIR/frontend/node_modules" ]; then
   rm -rf "$PROJECT_DIR/frontend/node_modules" 2>/dev/null || (find "$PROJECT_DIR/frontend/node_modules" -type f -exec rm -f {} + && find "$PROJECT_DIR/frontend/node_modules" -type d -empty -delete)
-fi
-
-# Restore .env if backup exists
-if [ -f "$ENV_BAK_PATH" ]; then
-  mv "$ENV_BAK_PATH" "$ENV_PATH"
 fi
 
 # Install prerequisites
