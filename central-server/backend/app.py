@@ -276,16 +276,34 @@ def update_relay_status_from_device(relay_id):
     session.close()
     return jsonify({'message': 'Relay status updated'})
 
+def get_lan_ip():
+    try:
+        import netifaces
+        for iface in netifaces.interfaces():
+            addrs = netifaces.ifaddresses(iface)
+            if netifaces.AF_INET in addrs:
+                for addr in addrs[netifaces.AF_INET]:
+                    ip = addr['addr']
+                    if not ip.startswith('127.') and not ip.startswith('169.254.'):
+                        return ip
+    except Exception:
+        pass
+    # fallback: try socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('10.255.255.255', 1))
+        ip = s.getsockname()[0]
+        s.close()
+        if not ip.startswith('127.') and not ip.startswith('169.254.'):
+            return ip
+    except Exception:
+        pass
+    return '127.0.0.1'
+
 @app.route('/api/server_info')
 def server_info():
-    # Try to get the server's IP address
-    try:
-        hostname = socket.gethostname()
-        ip = socket.gethostbyname(hostname)
-    except Exception:
-        ip = request.host.split(':')[0]
-    port = request.host.split(':')[1] if ':' in request.host else '5000'
-    return jsonify({'ip': ip, 'port': port})
+    ip = get_lan_ip()
+    return jsonify({'ip': ip})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000) 
