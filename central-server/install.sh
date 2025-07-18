@@ -28,7 +28,7 @@ FRONTEND_PORT="3000"
 
 # Clean up previous installations (just in case)
 echo "[0/8] Cleaning up previous installations..."
-rm -rf "$PROJECT_DIR/backend/venv" "$PROJECT_DIR/backend/.env" "$PROJECT_DIR/backend.log" "$PROJECT_DIR/frontend.log"
+rm -rf "$PROJECT_DIR/backend/venv" "$PROJECT_DIR/backend.log" "$PROJECT_DIR/frontend.log"
 if [ -d "$PROJECT_DIR/frontend/node_modules" ]; then
   rm -rf "$PROJECT_DIR/frontend/node_modules" 2>/dev/null || (find "$PROJECT_DIR/frontend/node_modules" -type f -exec rm -f {} + && find "$PROJECT_DIR/frontend/node_modules" -type d -empty -delete)
 fi
@@ -90,8 +90,9 @@ else
   fi
 fi
 
-# Create .env for backend
+# Create .env for backend if it does not exist
 cd "$PROJECT_DIR/backend"
+if [ ! -f ".env" ]; then
 cat > .env <<EOF
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
@@ -99,6 +100,7 @@ DB_PASS=$DB_PASS_TO_USE
 DB_PORT=$DB_PORT
 DB_HOST=$DB_HOST
 EOF
+fi
 
 # Setup backend
 echo "[5/8] Setting up backend..."
