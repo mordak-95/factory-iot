@@ -113,16 +113,31 @@ cd "$PROJECT_DIR"
 # Setup frontend
 echo "[6/8] Setting up frontend..."
 cd "$PROJECT_DIR/frontend"
-yarn install
+npm install
 
 # Install Tailwind CSS and dependencies if not already present
 if [ ! -f "tailwind.config.js" ]; then
   echo "Installing Tailwind CSS and initializing config..."
-  yarn add -D tailwindcss postcss autoprefixer
-  yarn tailwindcss init -p
+  npm install -D tailwindcss postcss autoprefixer
+  npx tailwindcss init -p
 fi
 
-nohup yarn start --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
+# Ensure index.css exists with Tailwind imports
+if [ ! -f "src/index.css" ]; then
+  cat > src/index.css <<EOF
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background-color: #0f172a;
+}
+EOF
+fi
+
+npm run build
+nohup npm start -- --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 cd "$PROJECT_DIR"
 
