@@ -30,16 +30,21 @@ cd "$PROJECT_DIR"
 # Settings
 DB_NAME="central_db"
 DB_USER="postgres"
-DB_PASS="password"
+DB_PASS=$(openssl rand -base64 16 | tr -dc 'A-Za-z0-9' | head -c 16)
 DB_PORT="5432"
 DB_HOST="localhost"
 BACKEND_PORT="5000"
 FRONTEND_PORT="3000"
 
+# Clean up previous installations
+echo "[0/8] Cleaning up previous installations..."
+rm -rf "$PROJECT_DIR/backend/venv" "$PROJECT_DIR/backend/.env" "$PROJECT_DIR/backend.log" "$PROJECT_DIR/frontend.log"
+rm -rf "$PROJECT_DIR/frontend/node_modules"
+
 # Install prerequisites
 echo "[1/8] Installing prerequisites..."
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip python3-venv postgresql postgresql-contrib curl git
+sudo apt-get install -y python3 python3-pip python3-venv postgresql postgresql-contrib curl git openssl
 
 # Install Node.js (LTS) and yarn if not present
 if ! command -v node &> /dev/null; then
@@ -82,9 +87,7 @@ cd "$PROJECT_DIR"
 # Setup frontend
 echo "[5/8] Setting up frontend..."
 cd "$PROJECT_DIR/frontend"
-if [ ! -d "node_modules" ]; then
-  yarn install
-fi
+yarn install
 nohup yarn start --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 cd "$PROJECT_DIR"
@@ -94,5 +97,6 @@ echo "[6/8] All services are running."
 echo "- Backend: http://localhost:$BACKEND_PORT (log: backend.log)"
 echo "- Frontend: http://localhost:$FRONTEND_PORT (log: frontend.log)"
 echo "- PostgreSQL: port $DB_PORT, database $DB_NAME, user $DB_USER"
+echo "- Database password: $DB_PASS"
 echo "To stop the services, run:"
 echo "  kill $BACKEND_PID $FRONTEND_PID" 
