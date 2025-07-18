@@ -1,28 +1,19 @@
 #!/bin/bash
 set -e
 
-# Find the central-server directory (must contain backend/ and frontend/)
-SEARCH_DIR=$(pwd)
-PROJECT_DIR=""
+# Always remove any previous central-server code and clone the latest version
+if [ -d "$HOME/factory-iot" ]; then
+  echo "Removing previous factory-iot directory..."
+  rm -rf "$HOME/factory-iot"
+fi
 
-while [ "$SEARCH_DIR" != "/" ]; do
-  if [ -d "$SEARCH_DIR/backend" ] && [ -d "$SEARCH_DIR/frontend" ]; then
-    PROJECT_DIR="$SEARCH_DIR"
-    break
-  fi
-  SEARCH_DIR=$(dirname "$SEARCH_DIR")
-done
+echo "Cloning latest factory-iot repository from GitHub..."
+git clone https://github.com/mordak-95/factory-iot.git "$HOME/factory-iot"
+PROJECT_DIR="$HOME/factory-iot/central-server"
 
-if [ -z "$PROJECT_DIR" ]; then
-  echo "central-server directory not found. Cloning from GitHub..."
-  if [ ! -d "$HOME/factory-iot" ]; then
-    git clone https://github.com/mordak-95/factory-iot.git "$HOME/factory-iot"
-  fi
-  PROJECT_DIR="$HOME/factory-iot/central-server"
-  if [ ! -d "$PROJECT_DIR/backend" ] || [ ! -d "$PROJECT_DIR/frontend" ]; then
-    echo "Error: Could not find or clone central-server directory with backend/ and frontend/ folders."
-    exit 1
-  fi
+if [ ! -d "$PROJECT_DIR/backend" ] || [ ! -d "$PROJECT_DIR/frontend" ]; then
+  echo "Error: Could not find central-server directory with backend/ and frontend/ folders."
+  exit 1
 fi
 
 cd "$PROJECT_DIR"
@@ -35,7 +26,7 @@ DB_HOST="localhost"
 BACKEND_PORT="5000"
 FRONTEND_PORT="3000"
 
-# Clean up previous installations
+# Clean up previous installations (just in case)
 echo "[0/8] Cleaning up previous installations..."
 rm -rf "$PROJECT_DIR/backend/venv" "$PROJECT_DIR/backend/.env" "$PROJECT_DIR/backend.log" "$PROJECT_DIR/frontend.log"
 if [ -d "$PROJECT_DIR/frontend/node_modules" ]; then
