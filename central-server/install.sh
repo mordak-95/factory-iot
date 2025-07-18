@@ -59,10 +59,10 @@ fi
 # Check if database exists
 db_exists=$(sudo -u postgres psql -p $DB_PORT -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME';")
 
-# Try to get previous password if .env exists and DB exists
-PREV_ENV="$HOME/factory-iot/central-server/backend/.env"
-if [ "$db_exists" == "1" ] && [ -f "$PREV_ENV" ]; then
-  PREV_DB_PASS=$(grep DB_PASS "$PREV_ENV" | cut -d'=' -f2-)
+# Always check .env in backend directory for previous password
+ENV_PATH="$PROJECT_DIR/backend/.env"
+if [ -f "$ENV_PATH" ]; then
+  PREV_DB_PASS=$(grep '^DB_PASS=' "$ENV_PATH" | cut -d'=' -f2-)
 else
   PREV_DB_PASS=""
 fi
@@ -79,11 +79,10 @@ if [ "$db_exists" != "1" ]; then
   DB_PASS_TO_USE=$DB_PASS
 else
   # Database exists
-  if [ -n "$PREV_DB_PASS" ] && [ "$PREV_DB_PASS" != "(unknown, check your previous .env)" ]; then
+  if [ -n "$PREV_DB_PASS" ]; then
     DB_PASS_TO_USE=$PREV_DB_PASS
     echo "Database $DB_NAME already exists. Using previous password from .env."
   else
-    # No previous .env or password, generate and set a new one
     sudo -u postgres psql -p $DB_PORT -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
     DB_PASS_TO_USE=$DB_PASS
     echo "Database $DB_NAME already exists but no previous password found. Setting a new password."
