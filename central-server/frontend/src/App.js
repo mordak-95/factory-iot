@@ -2,11 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useParams } from 'react-router-dom';
 import HealthCheck from './HealthCheck';
 import DeviceList from './DeviceList';
-
-function RelayList() {
-  const { deviceId } = useParams();
-  return <div className="p-4 text-white">Relay List Page for Device ID: {deviceId} (to be implemented)</div>;
-}
+import RelayList from './RelayList';
 
 function Navigation() {
   return (
