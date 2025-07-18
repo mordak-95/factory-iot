@@ -1,14 +1,6 @@
 #!/bin/bash
 set -e
 
-# Backup previous DB password if exists
-PREV_ENV="$HOME/factory-iot/central-server/backend/.env"
-if [ -f "$PREV_ENV" ]; then
-  PREV_DB_PASS=$(grep DB_PASS "$PREV_ENV" | cut -d'=' -f2-)
-else
-  PREV_DB_PASS=""
-fi
-
 # Always remove any previous central-server code and clone the latest version
 if [ -d "$HOME/factory-iot" ]; then
   echo "Removing previous factory-iot directory..."
@@ -67,21 +59,34 @@ fi
 # Check if database exists
 db_exists=$(sudo -u postgres psql -p $DB_PORT -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME';")
 
+# Try to get previous password if .env exists and DB exists
+PREV_ENV="$HOME/factory-iot/central-server/backend/.env"
+if [ "$db_exists" == "1" ] && [ -f "$PREV_ENV" ]; then
+  PREV_DB_PASS=$(grep DB_PASS "$PREV_ENV" | cut -d'=' -f2-)
+else
+  PREV_DB_PASS=""
+fi
+
 # Setup and configure PostgreSQL
 echo "[4/8] Setting up PostgreSQL on port $DB_PORT..."
 sudo systemctl enable postgresql
 sudo systemctl start postgresql
 if [ "$db_exists" != "1" ]; then
+  # Database does not exist, create and set new password
   sudo -u postgres psql -p $DB_PORT -c "CREATE DATABASE $DB_NAME;"
   sudo -u postgres psql -p $DB_PORT -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
   sudo -u postgres psql -p $DB_PORT -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
   DB_PASS_TO_USE=$DB_PASS
 else
-  echo "Database $DB_NAME already exists. Not changing user password."
-  if [ -n "$PREV_DB_PASS" ]; then
+  # Database exists
+  if [ -n "$PREV_DB_PASS" ] && [ "$PREV_DB_PASS" != "(unknown, check your previous .env)" ]; then
     DB_PASS_TO_USE=$PREV_DB_PASS
+    echo "Database $DB_NAME already exists. Using previous password from .env."
   else
-    DB_PASS_TO_USE="(unknown, check your previous .env)"
+    # No previous .env or password, generate and set a new one
+    sudo -u postgres psql -p $DB_PORT -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
+    DB_PASS_TO_USE=$DB_PASS
+    echo "Database $DB_NAME already exists but no previous password found. Setting a new password."
   fi
 fi
 
