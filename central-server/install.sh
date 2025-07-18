@@ -3,6 +3,9 @@
 # این اسکریپت را با دسترسی sudo اجرا کنید
 set -e
 
+# --- تعیین مسیر پروژه (حتی هنگام اجرا از اینترنت) ---
+SCRIPT_DIR=$(pwd)
+
 # --- تنظیمات ---
 DB_NAME="central_db"
 DB_USER="postgres"
@@ -38,7 +41,7 @@ sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 
 # --- ایجاد فایل env برای backend ---
-cd $(dirname "$0")/backend
+cd "$SCRIPT_DIR/backend"
 cat > .env <<EOF
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
@@ -53,19 +56,19 @@ python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-nohup venv/bin/python app.py > ../backend.log 2>&1 &
+nohup venv/bin/python app.py > "$SCRIPT_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
-cd ..
+cd "$SCRIPT_DIR"
 
 # --- راه‌اندازی frontend (ReactJS) ---
 echo "[5/8] راه‌اندازی frontend..."
-cd frontend
+cd "$SCRIPT_DIR/frontend"
 if [ ! -d "node_modules" ]; then
   yarn install
 fi
-nohup yarn start --port $FRONTEND_PORT > ../frontend.log 2>&1 &
+nohup yarn start --port $FRONTEND_PORT > "$SCRIPT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
-cd ..
+cd "$SCRIPT_DIR"
 
 # --- پایان ---
 echo "[6/8] همه سرویس‌ها اجرا شدند."
