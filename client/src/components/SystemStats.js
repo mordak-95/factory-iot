@@ -18,14 +18,14 @@ const SystemStats = ({ stats }) => {
   const ProgressBar = ({ value, max, label, unit = '%' }) => (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className="text-sm text-gray-600">
+        <span className="text-sm font-medium text-gray-300">{label}</span>
+        <span className="text-sm text-gray-400">
           {value}{unit}
         </span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="w-full bg-gray-700 rounded-full h-1.5">
         <div 
-          className={`h-2 rounded-full transition-all duration-300 ${getProgressColor((value / max) * 100)}`}
+          className={`h-1.5 rounded-full transition-all duration-300 ${getProgressColor((value / max) * 100)}`}
           style={{ width: `${(value / max) * 100}%` }}
         />
       </div>
@@ -33,22 +33,22 @@ const SystemStats = ({ stats }) => {
   );
 
   const StatCard = ({ title, icon, mainValue, mainUnit, details, progress }) => (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
       <div className="flex items-center space-x-3 mb-4">
-        <div className="text-2xl">{icon}</div>
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <div className="text-xl">{icon}</div>
+        <h3 className="text-sm font-semibold text-white">{title}</h3>
       </div>
       
-      <div className="space-y-4">
-        <div className="flex items-baseline space-x-2">
-          <span className="text-3xl font-bold text-gray-900">{mainValue}</span>
-          <span className="text-lg text-gray-600">{mainUnit}</span>
+      <div className="space-y-3">
+        <div className="flex items-baseline space-x-1">
+          <span className="text-2xl font-bold text-white">{mainValue}</span>
+          <span className="text-sm text-gray-400">{mainUnit}</span>
         </div>
         
         {details && (
           <div className="space-y-1">
             {details.map((detail, index) => (
-              <p key={index} className="text-sm text-gray-600">{detail}</p>
+              <p key={index} className="text-xs text-gray-400">{detail}</p>
             ))}
           </div>
         )}
@@ -66,8 +66,8 @@ const SystemStats = ({ stats }) => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4">
         {/* CPU Card */}
         <StatCard
           title="CPU"
@@ -150,8 +150,8 @@ const SystemStats = ({ stats }) => {
         )}
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-4">
-        <span className="text-sm text-gray-600">
+      <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
+        <span className="text-xs text-gray-500">
           Last Update: {new Date(stats.timestamp).toLocaleTimeString()}
         </span>
       </div>
