@@ -7,12 +7,24 @@ A Flask-based REST API for factory IoT management
 import os
 import json
 import psutil
+import time
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from threading import Thread
+import requests
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app)
+
+# Load .env
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
+DEVICE_ID = os.getenv('DEVICE_ID')
+DEVICE_TOKEN = os.getenv('DEVICE_TOKEN')
+CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://localhost:5000')
+RELAY_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'relay_config.json')
+SYNC_INTERVAL = 30
 
 # Load configuration
 def load_config():
@@ -63,27 +75,86 @@ iot_devices = {
 }
 
 try:
-    from gpiozero import Device, OutputDevice
-    from gpiozero.pins.lgpio import LGPIOFactory
-    Device.pin_factory = LGPIOFactory()
+    from gpiozero import OutputDevice
     RELAY_ENABLED = True
 except ImportError:
-    # Not running on Raspberry Pi or gpiozero not installed
     RELAY_ENABLED = False
     OutputDevice = None
 
+# Relay management
+relay_objs = {}
+relay_defs = []
+
+def load_relay_config():
+    global relay_defs, relay_objs
+    try:
+        with open(RELAY_CONFIG_PATH, 'r') as f:
+            relay_defs = json.load(f)
+    except Exception:
+        relay_defs = []
+    # (Re)initialize relay objects
+    if RELAY_ENABLED:
+        relay_objs = {}
+        for r in relay_defs:
+            relay_objs[r['id']] = OutputDevice(r['gpio_pin'])
+    print(f"[backend] Loaded relay config: {relay_defs}")
+
+def sync_relay_config():
+    if not DEVICE_ID or not DEVICE_TOKEN:
+        print('[backend] DEVICE_ID and DEVICE_TOKEN not set, skipping sync.')
+        return
+    url = f"{CENTRAL_SERVER_URL}/api/devices/{DEVICE_ID}/relays/config"
+    headers = {'X-Device-Token': DEVICE_TOKEN}
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            with open(RELAY_CONFIG_PATH, 'w') as f:
+                json.dump(data['relays'], f, indent=2)
+            print(f"[backend] Synced relay config from central server.")
+            load_relay_config()
+        else:
+            print(f"[backend] Failed to sync relay config: {resp.status_code} {resp.text}")
+    except Exception as e:
+        print(f"[backend] Exception syncing relay config: {e}")
+
+def update_central_status(relay_id, status):
+    if not DEVICE_ID or not DEVICE_TOKEN:
+        print('[backend] DEVICE_ID and DEVICE_TOKEN not set, cannot update central.')
+        return
+    url = f"{CENTRAL_SERVER_URL}/api/relays/{relay_id}/status"
+    headers = {'Content-Type': 'application/json', 'X-Device-Token': DEVICE_TOKEN}
+    data = {'status': status}
+    try:
+        resp = requests.put(url, headers=headers, json=data, timeout=10)
+        if resp.status_code == 200:
+            print(f"[backend] Updated relay {relay_id} status to {status} in central server.")
+        else:
+            print(f"[backend] Failed to update relay {relay_id} status: {resp.status_code} {resp.text}")
+    except Exception as e:
+        print(f"[backend] Exception updating relay status: {e}")
+
+def periodic_sync():
+    while True:
+        sync_relay_config()
+        time.sleep(SYNC_INTERVAL)
+
+# Start periodic sync in background
+Thread(target=periodic_sync, daemon=True).start()
+load_relay_config()
+
 # تعریف پین‌های رله (BCM)
-RELAY_PINS = {
-    "relay1": 17,  # GPIO17
-    "relay2": 27,  # GPIO27
-    "relay3": 22   # GPIO22
-}
+# RELAY_PINS = {
+#     "relay1": 17,  # GPIO17
+#     "relay2": 27,  # GPIO27
+#     "relay3": 22   # GPIO22
+# }
 
 # نگهداری آبجکت‌های رله
-relays = {}
-if RELAY_ENABLED:
-    for relay_id, pin in RELAY_PINS.items():
-        relays[relay_id] = OutputDevice(pin)
+# relays = {}
+# if RELAY_ENABLED:
+#     for relay_id, pin in RELAY_PINS.items():
+#         relays[relay_id] = OutputDevice(pin)
 
 @app.route('/')
 def index():
@@ -223,7 +294,11 @@ def get_relays():
     """لیست رله‌ها و وضعیت فعلی آن‌ها"""
     if not RELAY_ENABLED:
         return jsonify({"error": "Relay control not available on this system."}), 501
-    status = {relay_id: relays[relay_id].value for relay_id in relays}
+    status = {}
+    for r in relay_defs:
+        relay_id = r['id']
+        obj = relay_objs.get(relay_id)
+        status[relay_id] = obj.value if obj else False
     return jsonify({"relays": status})
 
 @app.route('/api/relays/<relay_id>', methods=['POST'])
@@ -231,18 +306,21 @@ def control_relay(relay_id):
     """روشن یا خاموش کردن رله مشخص شده"""
     if not RELAY_ENABLED:
         return jsonify({"error": "Relay control not available on this system."}), 501
-    if relay_id not in relays:
+    relay_def = next((r for r in relay_defs if str(r['id']) == str(relay_id)), None)
+    if not relay_def or relay_id not in relay_objs:
         return jsonify({"error": "Relay not found"}), 404
     data = request.get_json()
     if not data or "action" not in data:
         return jsonify({"error": "Missing 'action' in request body"}), 400
     action = data["action"].lower()
-    relay = relays[relay_id]
+    relay = relay_objs[relay_id]
     if action == "on":
         relay.on()
+        update_central_status(relay_id, True)
         return jsonify({"status": f"{relay_id} turned on"}), 200
     elif action == "off":
         relay.off()
+        update_central_status(relay_id, False)
         return jsonify({"status": f"{relay_id} turned off"}), 200
     else:
         return jsonify({"error": "Invalid action, use 'on' or 'off'"}), 400

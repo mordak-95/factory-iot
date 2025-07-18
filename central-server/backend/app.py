@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -6,6 +6,8 @@ from flask_cors import CORS
 from models import Device, Relay, Base, get_engine
 from sqlalchemy import inspect
 from sqlalchemy.orm import sessionmaker
+import secrets
+import socket
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -59,6 +61,13 @@ def model_status():
     all_ok = all(status.values())
     return jsonify({"tables": status, "all_ok": all_ok})
 
+# Helper: get device by token
+def get_device_by_token(token):
+    session = Session()
+    device = session.query(Device).filter_by(token=token).first()
+    session.close()
+    return device
+
 # Device CRUD
 @app.route('/api/devices', methods=['GET'])
 def list_devices():
@@ -84,18 +93,31 @@ def create_device():
     if not data or 'name' not in data:
         return jsonify({'error': 'Device name is required'}), 400
     session = Session()
+    token = data.get('token') or secrets.token_hex(16)
     device = Device(
         name=data['name'],
         ip_address=data.get('ip_address'),
-        token=data.get('token'),
+        token=token,
         description=data.get('description'),
         is_active=data.get('is_active', True)
     )
     session.add(device)
     session.commit()
-    result = {'id': device.id, 'name': device.name}
+    result = {'id': device.id, 'name': device.name, 'token': device.token}
     session.close()
     return jsonify(result), 201
+
+# Endpoint: Get device token (admin use)
+@app.route('/api/devices/<int:device_id>/token', methods=['GET'])
+def get_device_token(device_id):
+    session = Session()
+    device = session.query(Device).get(device_id)
+    if not device:
+        session.close()
+        return jsonify({'error': 'Device not found'}), 404
+    result = {'id': device.id, 'token': device.token}
+    session.close()
+    return jsonify(result)
 
 @app.route('/api/devices/<int:device_id>', methods=['GET'])
 def get_device(device_id):
@@ -209,6 +231,61 @@ def delete_relay(relay_id):
     session.commit()
     session.close()
     return jsonify({'message': 'Relay deleted'})
+
+# Endpoint: Get relay config for a device
+@app.route('/api/devices/<int:device_id>/relays/config', methods=['GET'])
+def get_device_relay_config(device_id):
+    session = Session()
+    device = session.query(Device).get(device_id)
+    if not device:
+        session.close()
+        return jsonify({'error': 'Device not found'}), 404
+    relays = session.query(Relay).filter_by(device_id=device_id).all()
+    result = [
+        {
+            'id': r.id,
+            'name': r.name,
+            'gpio_pin': r.gpio_pin,
+            'status': r.status
+        } for r in relays
+    ]
+    session.close()
+    return jsonify({'relays': result})
+
+# Endpoint: Device updates relay status
+@app.route('/api/relays/<int:relay_id>/status', methods=['PUT'])
+def update_relay_status_from_device(relay_id):
+    token = request.headers.get('X-Device-Token') or request.json.get('token')
+    if not token:
+        return jsonify({'error': 'Device token required'}), 401
+    session = Session()
+    relay = session.query(Relay).get(relay_id)
+    if not relay:
+        session.close()
+        return jsonify({'error': 'Relay not found'}), 404
+    device = session.query(Device).get(relay.device_id)
+    if not device or device.token != token:
+        session.close()
+        return jsonify({'error': 'Unauthorized device'}), 403
+    data = request.get_json()
+    if not data or 'status' not in data:
+        session.close()
+        return jsonify({'error': 'Status is required'}), 400
+    relay.status = bool(data['status'])
+    session.commit()
+    session.close()
+    return jsonify({'message': 'Relay status updated'})
+
+@app.route('/api/server_info')
+def server_info():
+    # Try to get the server's IP address
+    try:
+        hostname = socket.gethostname()
+        ip = socket.gethostbyname(hostname)
+    except Exception:
+        ip = request.host.split(':')[0]
+    port = request.host.split(':')[1] if ':' in request.host else '5000'
+    return jsonify({'ip': ip, 'port': port})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000) 

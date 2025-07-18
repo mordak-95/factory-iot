@@ -15,6 +15,8 @@ function DeviceList() {
   const [deleteId, setDeleteId] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
   const navigate = useNavigate();
+  const [showToken, setShowToken] = useState({});
+  const [tokenValue, setTokenValue] = useState({});
 
   const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
 
@@ -112,6 +114,22 @@ function DeviceList() {
       .catch(err => setDeleteError(err.message));
   };
 
+  const handleShowToken = async (id) => {
+    if (tokenValue[id]) {
+      setShowToken(s => ({ ...s, [id]: !s[id] }));
+      return;
+    }
+    try {
+      const res = await fetch(`${backendUrl}/api/devices/${id}/token`);
+      const data = await res.json();
+      setTokenValue(t => ({ ...t, [id]: data.token }));
+      setShowToken(s => ({ ...s, [id]: true }));
+    } catch {
+      setTokenValue(t => ({ ...t, [id]: 'Error' }));
+      setShowToken(s => ({ ...s, [id]: true }));
+    }
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center mb-6">
@@ -133,6 +151,7 @@ function DeviceList() {
               <th className="py-2">Name</th>
               <th className="py-2">IP Address</th>
               <th className="py-2">Active</th>
+              <th className="py-2">ID</th>
               <th className="py-2">Actions</th>
             </tr>
           </thead>
@@ -142,6 +161,7 @@ function DeviceList() {
                 <td className="py-2 font-semibold">{device.name}</td>
                 <td className="py-2">{device.ip_address || '-'}</td>
                 <td className="py-2">{device.is_active ? 'Yes' : 'No'}</td>
+                <td className="py-2">{device.id}</td>
                 <td className="py-2 flex gap-2">
                   <button
                     className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded"
@@ -149,6 +169,15 @@ function DeviceList() {
                   >
                     Relays
                   </button>
+                  <button
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                    onClick={() => handleShowToken(device.id)}
+                  >
+                    {showToken[device.id] ? 'Hide Token' : 'Show Token'}
+                  </button>
+                  {showToken[device.id] && (
+                    <span className="ml-2 text-xs bg-gray-700 px-2 py-1 rounded select-all">{tokenValue[device.id]}</span>
+                  )}
                   <button
                     className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
                     onClick={() => openEdit(device)}
