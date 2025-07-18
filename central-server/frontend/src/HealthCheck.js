@@ -7,10 +7,11 @@ function HealthCheck() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
     const fetchStatus = async () => {
       try {
         setLoading(true);
-        const res = await fetch('/health');
+        const res = await fetch(`${backendUrl}/health`);
         const data = await res.json();
         setStatus(data);
       } catch (err) {
@@ -21,7 +22,7 @@ function HealthCheck() {
     };
     const fetchModelStatus = async () => {
       try {
-        const res = await fetch('/api/model_status');
+        const res = await fetch(`${backendUrl}/api/model_status`);
         const data = await res.json();
         setModelStatus(data);
       } catch (err) {
