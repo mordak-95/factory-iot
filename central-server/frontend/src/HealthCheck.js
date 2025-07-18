@@ -6,7 +6,9 @@ function HealthCheck() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/health')
+    // Build backend URL dynamically based on current host
+    const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
+    fetch(`${backendUrl}/health`)
       .then(res => res.json())
       .then(data => {
         setStatus(data.status);
