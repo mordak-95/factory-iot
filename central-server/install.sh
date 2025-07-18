@@ -114,6 +114,9 @@ DB_HOST=$DB_HOST
 EOF
 fi
 
+# Kill any previously running backend processes to avoid old code running
+pkill -f app.py || true
+
 # Setup backend
 echo "[5/8] Setting up backend..."
 python3 -m venv venv
