@@ -119,7 +119,7 @@ yarn install
 if [ ! -f "tailwind.config.js" ]; then
   echo "Installing Tailwind CSS and initializing config..."
   yarn add -D tailwindcss postcss autoprefixer
-  npx tailwindcss init -p
+  yarn tailwindcss init -p
 fi
 
 nohup yarn start --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
