@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './DeviceCard.css';
 
 const DeviceCard = ({ device, onUpdateValue, onUpdateStatus, onRelayControl, isRelay }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -7,11 +6,21 @@ const DeviceCard = ({ device, onUpdateValue, onUpdateStatus, onRelayControl, isR
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return '#4ade80';
-      case 'inactive': return '#f87171';
-      case 'error': return '#fbbf24';
-      case 'maintenance': return '#60a5fa';
-      default: return '#a0a0a0';
+      case 'active': return 'bg-green-500';
+      case 'inactive': return 'bg-red-500';
+      case 'error': return 'bg-yellow-500';
+      case 'maintenance': return 'bg-blue-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getStatusTextColor = (status) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-red-100 text-red-800';
+      case 'error': return 'bg-yellow-100 text-yellow-800';
+      case 'maintenance': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -37,43 +46,53 @@ const DeviceCard = ({ device, onUpdateValue, onUpdateStatus, onRelayControl, isR
   };
 
   const formatLastUpdate = (timestamp) => {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
     return date.toLocaleTimeString();
   };
 
   return (
-    <div className="device-card">
-      <div className="device-header">
-        <div className="device-icon">{getDeviceIcon(device.type)}</div>
-        <div className="device-info">
-          <h3 className="device-name">{device.name}</h3>
-          <p className="device-id">ID: {device.id}</p>
+    <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="text-2xl">{getDeviceIcon(device.type)}</div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">{device.name}</h3>
+            <p className="text-gray-500 text-sm">ID: {device.id}</p>
+          </div>
         </div>
-        <div 
-          className="device-status"
-          style={{ backgroundColor: getStatusColor(device.status) }}
-        >
-          {device.status}
-        </div>
+        <div className={`w-3 h-3 rounded-full ${getStatusColor(device.status)}`}></div>
       </div>
 
-      <div className="device-body">
+      <div className="space-y-4">
         {isRelay ? (
-          <div className="device-value-section">
-            <label className="value-label">Relay Control:</label>
-            <div className="value-display">
-              <span className="value-number">{device.value}</span>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 font-medium">Relay Control:</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                device.value === 'ON' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                {device.value}
+              </span>
             </div>
-            <div className="value-actions">
+            <div className="flex space-x-2">
               <button
-                className="btn-save"
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  device.value === 'ON' 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-green-600 hover:text-white'
+                }`}
                 onClick={() => onRelayControl('on')}
                 disabled={device.value === 'ON'}
               >
                 Turn ON
               </button>
               <button
-                className="btn-cancel"
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  device.value === 'OFF' 
+                    ? 'bg-red-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-red-600 hover:text-white'
+                }`}
                 onClick={() => onRelayControl('off')}
                 disabled={device.value === 'OFF'}
               >
@@ -83,39 +102,50 @@ const DeviceCard = ({ device, onUpdateValue, onUpdateStatus, onRelayControl, isR
           </div>
         ) : (
           <>
-            <div className="device-value-section">
-              <label className="value-label">Current Value:</label>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 font-medium">Current Value:</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusTextColor(device.status)}`}>
+                  {device.status}
+                </span>
+              </div>
+              
               {isEditing ? (
-                <div className="value-edit">
-                  <input
-                    type="number"
-                    value={newValue}
-                    onChange={(e) => setNewValue(e.target.value)}
-                    className="value-input"
-                    step="0.1"
-                  />
-                  <div className="value-actions">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="number"
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      step="0.1"
+                    />
+                    <span className="text-gray-600">{device.unit}</span>
+                  </div>
+                  <div className="flex space-x-2">
                     <button 
                       onClick={handleValueUpdate}
-                      className="btn-save"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
                     >
                       Save
                     </button>
                     <button 
                       onClick={() => setIsEditing(false)}
-                      className="btn-cancel"
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="value-display">
-                  <span className="value-number">{device.value}</span>
-                  <span className="value-unit">{device.unit}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-2xl font-bold text-gray-800">{device.value}</span>
+                    <span className="text-gray-600">{device.unit}</span>
+                  </div>
                   <button 
                     onClick={() => setIsEditing(true)}
-                    className="btn-edit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                   >
                     Edit
                   </button>
@@ -123,16 +153,23 @@ const DeviceCard = ({ device, onUpdateValue, onUpdateStatus, onRelayControl, isR
               )}
             </div>
 
-            <div className="device-controls">
-              <label className="control-label">Status Control:</label>
-              <div className="status-buttons">
+            <div className="space-y-3">
+              <span className="text-gray-600 font-medium">Status Control:</span>
+              <div className="grid grid-cols-2 gap-2">
                 {['active', 'inactive', 'maintenance', 'error'].map(status => (
                   <button
                     key={status}
                     onClick={() => handleStatusChange(status)}
-                    className={`status-btn ${device.status === status ? 'active' : ''}`}
+                    className={`py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
+                      device.status === status 
+                        ? 'text-white' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
                     style={{
-                      backgroundColor: device.status === status ? getStatusColor(status) : '#3a3a3a'
+                      backgroundColor: device.status === status ? 
+                        (status === 'active' ? '#10b981' : 
+                         status === 'inactive' ? '#ef4444' : 
+                         status === 'maintenance' ? '#3b82f6' : '#f59e0b') : 'transparent'
                     }}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -142,11 +179,14 @@ const DeviceCard = ({ device, onUpdateValue, onUpdateStatus, onRelayControl, isR
             </div>
           </>
         )}
-        <div className="device-footer">
-          <span className="last-update">
-            {device.last_update && <>Last Update: {formatLastUpdate(device.last_update)}</>}
-          </span>
-        </div>
+        
+        {device.last_update && (
+          <div className="pt-3 border-t border-gray-200">
+            <span className="text-gray-500 text-xs">
+              Last Update: {formatLastUpdate(device.last_update)}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

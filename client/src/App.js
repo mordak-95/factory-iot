@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './App.css';
+import Header from './components/Header';
 import DeviceCard from './components/DeviceCard';
 import SystemStats from './components/SystemStats';
-import Header from './components/Header';
+import LoadingSpinner from './components/LoadingSpinner';
+import ConnectionStatus from './components/ConnectionStatus';
 
 function App() {
   const [devices, setDevices] = useState([]);
@@ -13,6 +14,7 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [relays, setRelays] = useState({});
   const [relayError, setRelayError] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -30,9 +32,11 @@ function App() {
       
       setLastUpdate(new Date());
       setError(null);
+      setIsConnected(true);
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to connect to backend server');
+      setIsConnected(false);
     } finally {
       setLoading(false);
     }
@@ -89,11 +93,10 @@ function App() {
 
   if (loading && devices.length === 0) {
     return (
-      <div className="app">
-        <Header />
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Connecting to Factory IoT System...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Header lastUpdate={lastUpdate} />
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingSpinner size="xl" text="Connecting to Factory IoT System..." />
         </div>
       </div>
     );
@@ -112,21 +115,37 @@ function App() {
   }));
 
   return (
-    <div className="app">
+    <div className="min-h-screen bg-gray-50">
+      <ConnectionStatus isConnected={isConnected} lastUpdate={lastUpdate} />
       <Header lastUpdate={lastUpdate} />
       
       {error && (
-        <div className="error-banner">
-          <p>{error}</p>
-          <button onClick={fetchData}>Retry</button>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-4 mt-4 flex items-center justify-between">
+          <span>{error}</span>
+          <button 
+            onClick={fetchData}
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Retry
+          </button>
         </div>
       )}
       
-      <div className="main-content">
-        <div className="dashboard">
-          <div className="devices-section">
-            <h2>IoT Devices</h2>
-            <div className="devices-grid">
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Devices Section */}
+          <div className="lg:col-span-2">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">IoT Devices</h2>
+              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <span>Total: {devices.length + relayCards.length}</span>
+                <span className="text-green-600">
+                  Active: {devices.filter(d => d.status === 'active').length + relayCards.filter(r => r.status === 'active').length}
+                </span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* نمایش دستگاه‌ها */}
               {devices.map(device => (
                 <DeviceCard
@@ -147,14 +166,18 @@ function App() {
               ))}
             </div>
           </div>
-          <div className="stats-section">
-            <h2>System Statistics</h2>
+
+          {/* Stats Section */}
+          <div className="lg:col-span-1">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">System Statistics</h2>
+            </div>
             {systemStats && <SystemStats stats={systemStats} />}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
-export default App; 
+export default App;

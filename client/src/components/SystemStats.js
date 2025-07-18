@@ -1,5 +1,4 @@
 import React from 'react';
-import './SystemStats.css';
 
 const SystemStats = ({ stats }) => {
   const formatBytes = (bytes) => {
@@ -11,132 +10,148 @@ const SystemStats = ({ stats }) => {
   };
 
   const getProgressColor = (percent) => {
-    if (percent < 50) return '#4ade80';
-    if (percent < 80) return '#fbbf24';
-    return '#f87171';
+    if (percent < 50) return 'bg-green-500';
+    if (percent < 80) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
   const ProgressBar = ({ value, max, label, unit = '%' }) => (
-    <div className="progress-item">
-      <div className="progress-header">
-        <span className="progress-label">{label}</span>
-        <span className="progress-value">
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-sm text-gray-600">
           {value}{unit}
         </span>
       </div>
-      <div className="progress-bar">
+      <div className="w-full bg-gray-200 rounded-full h-2">
         <div 
-          className="progress-fill"
-          style={{ 
-            width: `${(value / max) * 100}%`,
-            backgroundColor: getProgressColor((value / max) * 100)
-          }}
+          className={`h-2 rounded-full transition-all duration-300 ${getProgressColor((value / max) * 100)}`}
+          style={{ width: `${(value / max) * 100}%` }}
         />
       </div>
     </div>
   );
 
+  const StatCard = ({ title, icon, mainValue, mainUnit, details, progress }) => (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center space-x-3 mb-4">
+        <div className="text-2xl">{icon}</div>
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex items-baseline space-x-2">
+          <span className="text-3xl font-bold text-gray-900">{mainValue}</span>
+          <span className="text-lg text-gray-600">{mainUnit}</span>
+        </div>
+        
+        {details && (
+          <div className="space-y-1">
+            {details.map((detail, index) => (
+              <p key={index} className="text-sm text-gray-600">{detail}</p>
+            ))}
+          </div>
+        )}
+        
+        {progress && (
+          <ProgressBar 
+            value={progress.value} 
+            max={progress.max} 
+            label={progress.label}
+            unit={progress.unit}
+          />
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="system-stats">
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3 className="stat-title">🖥️ CPU</h3>
-          <div className="stat-content">
-            <div className="stat-main">
-              <span className="stat-number">{stats.cpu.percent.toFixed(1)}%</span>
-              <span className="stat-unit">Usage</span>
-            </div>
-            <div className="stat-details">
-              <p>Cores: {stats.cpu.count}</p>
-              {stats.cpu.frequency && (
-                <p>Freq: {(stats.cpu.frequency.current / 1000).toFixed(1)} GHz</p>
-              )}
-            </div>
-          </div>
-          <ProgressBar 
-            value={stats.cpu.percent} 
-            max={100} 
-            label="CPU Usage" 
-          />
-        </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6">
+        {/* CPU Card */}
+        <StatCard
+          title="CPU"
+          icon="🖥️"
+          mainValue={stats.cpu.percent.toFixed(1)}
+          mainUnit="%"
+          details={[
+            `Cores: ${stats.cpu.count}`,
+            stats.cpu.frequency && `Freq: ${(stats.cpu.frequency.current / 1000).toFixed(1)} GHz`
+          ].filter(Boolean)}
+          progress={{
+            value: stats.cpu.percent,
+            max: 100,
+            label: "CPU Usage",
+            unit: "%"
+          }}
+        />
 
-        <div className="stat-card">
-          <h3 className="stat-title">💾 Memory</h3>
-          <div className="stat-content">
-            <div className="stat-main">
-              <span className="stat-number">{stats.memory.percent.toFixed(1)}%</span>
-              <span className="stat-unit">Used</span>
-            </div>
-            <div className="stat-details">
-              <p>Used: {formatBytes(stats.memory.used)}</p>
-              <p>Total: {formatBytes(stats.memory.total)}</p>
-            </div>
-          </div>
-          <ProgressBar 
-            value={stats.memory.percent} 
-            max={100} 
-            label="Memory Usage" 
-          />
-        </div>
+        {/* Memory Card */}
+        <StatCard
+          title="Memory"
+          icon="💾"
+          mainValue={stats.memory.percent.toFixed(1)}
+          mainUnit="%"
+          details={[
+            `Used: ${formatBytes(stats.memory.used)}`,
+            `Total: ${formatBytes(stats.memory.total)}`
+          ]}
+          progress={{
+            value: stats.memory.percent,
+            max: 100,
+            label: "Memory Usage",
+            unit: "%"
+          }}
+        />
 
-        <div className="stat-card">
-          <h3 className="stat-title">💿 Disk</h3>
-          <div className="stat-content">
-            <div className="stat-main">
-              <span className="stat-number">{stats.disk.percent.toFixed(1)}%</span>
-              <span className="stat-unit">Used</span>
-            </div>
-            <div className="stat-details">
-              <p>Used: {formatBytes(stats.disk.used)}</p>
-              <p>Free: {formatBytes(stats.disk.free)}</p>
-            </div>
-          </div>
-          <ProgressBar 
-            value={stats.disk.percent} 
-            max={100} 
-            label="Disk Usage" 
-          />
-        </div>
+        {/* Disk Card */}
+        <StatCard
+          title="Disk"
+          icon="💿"
+          mainValue={stats.disk.percent.toFixed(1)}
+          mainUnit="%"
+          details={[
+            `Used: ${formatBytes(stats.disk.used)}`,
+            `Free: ${formatBytes(stats.disk.free)}`
+          ]}
+          progress={{
+            value: stats.disk.percent,
+            max: 100,
+            label: "Disk Usage",
+            unit: "%"
+          }}
+        />
 
-        <div className="stat-card">
-          <h3 className="stat-title">🌐 Network</h3>
-          <div className="stat-content">
-            <div className="stat-main">
-              <span className="stat-number">-</span>
-              <span className="stat-unit">Activity</span>
-            </div>
-            <div className="stat-details">
-              <p>Sent: {formatBytes(stats.network.bytes_sent)}</p>
-              <p>Recv: {formatBytes(stats.network.bytes_recv)}</p>
-            </div>
-          </div>
-        </div>
+        {/* Network Card */}
+        <StatCard
+          title="Network"
+          icon="🌐"
+          mainValue="-"
+          mainUnit=""
+          details={[
+            `Sent: ${formatBytes(stats.network.bytes_sent)}`,
+            `Recv: ${formatBytes(stats.network.bytes_recv)}`
+          ]}
+        />
 
-        {/* Chipset Temperature Card */}
+        {/* Temperature Card */}
         {stats.temperature && stats.temperature.current !== undefined && (
-          <div className="stat-card">
-            <h3 className="stat-title">🌡️ Chipset Temp</h3>
-            <div className="stat-content">
-              <div className="stat-main">
-                <span className="stat-number">{stats.temperature.current.toFixed(1)}°C</span>
-                <span className="stat-unit">{stats.temperature.label || stats.temperature.sensor}</span>
-              </div>
-              <div className="stat-details">
-                {stats.temperature.high !== null && (
-                  <p>High: {stats.temperature.high}°C</p>
-                )}
-                {stats.temperature.critical !== null && (
-                  <p>Critical: {stats.temperature.critical}°C</p>
-                )}
-                <p>Sensor: {stats.temperature.sensor}</p>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title="Chipset Temp"
+            icon="🌡️"
+            mainValue={stats.temperature.current.toFixed(1)}
+            mainUnit="°C"
+            details={[
+              stats.temperature.high !== null && `High: ${stats.temperature.high}°C`,
+              stats.temperature.critical !== null && `Critical: ${stats.temperature.critical}°C`,
+              `Sensor: ${stats.temperature.sensor}`
+            ].filter(Boolean)}
+          />
         )}
       </div>
 
-      <div className="stats-footer">
-        <span className="timestamp">
+      <div className="bg-gray-50 rounded-lg p-4">
+        <span className="text-sm text-gray-600">
           Last Update: {new Date(stats.timestamp).toLocaleTimeString()}
         </span>
       </div>
