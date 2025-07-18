@@ -117,7 +117,7 @@ npm install
 
 
 npm run build
-nohup npm run preview -- --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
+nohup npm start -- --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 cd "$PROJECT_DIR"
 
