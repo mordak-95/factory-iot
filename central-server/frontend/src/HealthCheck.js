@@ -6,7 +6,6 @@ function HealthCheck() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Build backend URL dynamically based on current host
     const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
     fetch(`${backendUrl}/health`)
       .then(res => res.json())
@@ -22,12 +21,15 @@ function HealthCheck() {
       });
   }, []);
 
+  const statusColor = status === 'ok' ? 'text-green-500' : status === 'loading' ? 'text-yellow-500' : 'text-red-500';
+  const dbColor = dbStatus === 'ok' ? 'text-green-500' : dbStatus === 'unreachable' ? 'text-red-500' : 'text-yellow-500';
+
   return (
-    <div style={{border: '1px solid #ccc', padding: 16, borderRadius: 8, maxWidth: 400}}>
-      <h2>Health Check</h2>
-      <p>Backend status: <b>{status}</b></p>
-      <p>Database status: <b>{dbStatus}</b></p>
-      {error && <p style={{color: 'red'}}>Error: {error}</p>}
+    <div className="bg-gray-800 border-l-4 border-cyan-400 shadow-lg rounded-xl p-6 max-w-md mx-auto my-8 text-white font-sans">
+      <h2 className="text-2xl font-bold mb-4 tracking-wide">Health Check</h2>
+      <p className="mb-2">Backend status: <b className={statusColor}>{status}</b></p>
+      <p className="mb-2">Database status: <b className={dbColor}>{dbStatus}</b></p>
+      {error && <p className="text-red-400 font-semibold">Error: {error}</p>}
     </div>
   );
 }

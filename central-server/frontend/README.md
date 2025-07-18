@@ -1,7 +1,18 @@
-# Frontend - Central Server
+# Central Server Frontend
 
-این پوشه شامل کدهای فرانت‌اند سرور مرکزی (ReactJS) است.
+This project uses [Tailwind CSS](https://tailwindcss.com/) for all styling. All previous CSS files and inline styles have been replaced with Tailwind utility classes.
 
-- نمایش وضعیت دیوایس‌ها
-- مدیریت کاربران و دستگاه‌ها
-- ارتباط با API سرور مرکزی 
+## IoT Theme
+- Modern, dark dashboard look
+- Cyan accent color for IoT
+- Responsive and accessible
+
+## Development
+- To install dependencies: `yarn install`
+- To start: `yarn start`
+
+## Customizing Theme
+Edit `tailwind.config.js` to adjust colors, fonts, or extend the theme.
+
+## Removing Old CSS
+No `.css` files are used. If you add new components, use Tailwind classes only. 

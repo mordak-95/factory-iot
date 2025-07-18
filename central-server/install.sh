@@ -114,6 +114,14 @@ cd "$PROJECT_DIR"
 echo "[6/8] Setting up frontend..."
 cd "$PROJECT_DIR/frontend"
 yarn install
+
+# Install Tailwind CSS and dependencies if not already present
+if [ ! -f "tailwind.config.js" ]; then
+  echo "Installing Tailwind CSS and initializing config..."
+  yarn add -D tailwindcss postcss autoprefixer
+  npx tailwindcss init -p
+fi
+
 nohup yarn start --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 cd "$PROJECT_DIR"
