@@ -14,8 +14,15 @@ while [ "$SEARCH_DIR" != "/" ]; do
 done
 
 if [ -z "$PROJECT_DIR" ]; then
-  echo "Error: Could not find central-server directory (with backend/ and frontend/ folders) in this or any parent directory."
-  exit 1
+  echo "central-server directory not found. Cloning from GitHub..."
+  if [ ! -d "$HOME/factory-iot" ]; then
+    git clone https://github.com/mordak-95/factory-iot.git "$HOME/factory-iot"
+  fi
+  PROJECT_DIR="$HOME/factory-iot/central-server"
+  if [ ! -d "$PROJECT_DIR/backend" ] || [ ! -d "$PROJECT_DIR/frontend" ]; then
+    echo "Error: Could not find or clone central-server directory with backend/ and frontend/ folders."
+    exit 1
+  fi
 fi
 
 cd "$PROJECT_DIR"
