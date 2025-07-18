@@ -48,8 +48,10 @@ clone_repository() {
         rm -rf factory-iot
     fi
     
-    git clone https://github.com/mordak-95/factory-iot.git
-    cd factory-iot
+    # Clone repository to $HOME/factory-iot and use absolute paths
+    REPO_DIR="$HOME/factory-iot"
+    git clone https://github.com/mordak-95/factory-iot.git "$REPO_DIR"
+    cd "$REPO_DIR"
     
     log "Repository cloned successfully"
 }
@@ -294,20 +296,20 @@ main_install() {
     clone_repository
 
     # After cloning repository and before backend install
-    cd factory-iot
+    cd "$REPO_DIR"
 
     # Ensure backend directory exists
-    mkdir -p backend
+    mkdir -p "$REPO_DIR/backend"
 
     # Prompt for device config
-    ENV_PATH="$(pwd)/backend/.env"
+    ENV_PATH="$REPO_DIR/backend/.env"
     if [ -f "$ENV_PATH" ]; then
       echo ".env already exists at $ENV_PATH."
       read -p "Do you want to overwrite it? (y/N): " OVERWRITE
-      if [[ ! "$OVERWRITE" =~ ^[Yy]$ ]]; then
-        echo "Keeping existing .env."
-      else
+      if [[ "$OVERWRITE" =~ ^[Yy]$ ]]; then
         rm "$ENV_PATH"
+      else
+        echo "Keeping existing .env."
       fi
     fi
 
