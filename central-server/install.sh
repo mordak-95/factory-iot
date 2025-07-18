@@ -1,12 +1,24 @@
 #!/bin/bash
 set -e
 
-# Check if run from the correct directory
-SCRIPT_DIR=$(pwd)
-if [ ! -d "$SCRIPT_DIR/backend" ] || [ ! -d "$SCRIPT_DIR/frontend" ]; then
-  echo "Error: Please run this script from the central-server directory where 'backend' and 'frontend' folders exist."
+# Find the central-server directory (must contain backend/ and frontend/)
+SEARCH_DIR=$(pwd)
+PROJECT_DIR=""
+
+while [ "$SEARCH_DIR" != "/" ]; do
+  if [ -d "$SEARCH_DIR/backend" ] && [ -d "$SEARCH_DIR/frontend" ]; then
+    PROJECT_DIR="$SEARCH_DIR"
+    break
+  fi
+  SEARCH_DIR=$(dirname "$SEARCH_DIR")
+done
+
+if [ -z "$PROJECT_DIR" ]; then
+  echo "Error: Could not find central-server directory (with backend/ and frontend/ folders) in this or any parent directory."
   exit 1
 fi
+
+cd "$PROJECT_DIR"
 
 # Settings
 DB_NAME="central_db"
@@ -41,7 +53,7 @@ sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 
 # Create .env for backend
-cd "$SCRIPT_DIR/backend"
+cd "$PROJECT_DIR/backend"
 cat > .env <<EOF
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
@@ -56,19 +68,19 @@ python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-nohup venv/bin/python app.py > "$SCRIPT_DIR/backend.log" 2>&1 &
+nohup venv/bin/python app.py > "$PROJECT_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
-cd "$SCRIPT_DIR"
+cd "$PROJECT_DIR"
 
 # Setup frontend
 echo "[5/8] Setting up frontend..."
-cd "$SCRIPT_DIR/frontend"
+cd "$PROJECT_DIR/frontend"
 if [ ! -d "node_modules" ]; then
   yarn install
 fi
-nohup yarn start --port $FRONTEND_PORT > "$SCRIPT_DIR/frontend.log" 2>&1 &
+nohup yarn start --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
-cd "$SCRIPT_DIR"
+cd "$PROJECT_DIR"
 
 # Done
 echo "[6/8] All services are running."
