@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from flask_cors import CORS
 from models import Base, get_engine
+from sqlalchemy import inspect
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -43,6 +44,17 @@ def health():
         return jsonify({"status": "ok", "db": "ok"}), 200
     except Exception as e:
         return jsonify({"status": "error", "db": "unreachable", "error": str(e)}), 500
+
+@app.route('/api/model_status')
+def model_status():
+    """Check if all main tables exist in the database."""
+    engine = get_engine()
+    inspector = inspect(engine)
+    required_tables = ['devices', 'relays', 'sensors', 'status_logs']
+    existing_tables = inspector.get_table_names()
+    status = {table: (table in existing_tables) for table in required_tables}
+    all_ok = all(status.values())
+    return jsonify({"tables": status, "all_ok": all_ok})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000) 
