@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# Backup previous DB password if exists
+PREV_ENV="$HOME/factory-iot/central-server/backend/.env"
+if [ -f "$PREV_ENV" ]; then
+  PREV_DB_PASS=$(grep DB_PASS "$PREV_ENV" | cut -d'=' -f2-)
+else
+  PREV_DB_PASS=""
+fi
+
 # Always remove any previous central-server code and clone the latest version
 if [ -d "$HOME/factory-iot" ]; then
   echo "Removing previous factory-iot directory..."
@@ -70,9 +78,8 @@ if [ "$db_exists" != "1" ]; then
   DB_PASS_TO_USE=$DB_PASS
 else
   echo "Database $DB_NAME already exists. Not changing user password."
-  # Try to read the old password from previous .env if exists
-  if [ -f "$PROJECT_DIR/backend/.env" ]; then
-    DB_PASS_TO_USE=$(grep DB_PASS "$PROJECT_DIR/backend/.env" | cut -d'=' -f2-)
+  if [ -n "$PREV_DB_PASS" ]; then
+    DB_PASS_TO_USE=$PREV_DB_PASS
   else
     DB_PASS_TO_USE="(unknown, check your previous .env)"
   fi
