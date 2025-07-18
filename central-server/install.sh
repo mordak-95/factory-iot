@@ -38,7 +38,9 @@ FRONTEND_PORT="3000"
 # Clean up previous installations
 echo "[0/8] Cleaning up previous installations..."
 rm -rf "$PROJECT_DIR/backend/venv" "$PROJECT_DIR/backend/.env" "$PROJECT_DIR/backend.log" "$PROJECT_DIR/frontend.log"
-rm -rf "$PROJECT_DIR/frontend/node_modules"
+if [ -d "$PROJECT_DIR/frontend/node_modules" ]; then
+  rm -rf "$PROJECT_DIR/frontend/node_modules" 2>/dev/null || (find "$PROJECT_DIR/frontend/node_modules" -type f -exec rm -f {} + && find "$PROJECT_DIR/frontend/node_modules" -type d -empty -delete)
+fi
 
 # Install prerequisites
 echo "[1/8] Installing prerequisites..."
