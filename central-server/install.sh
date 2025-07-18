@@ -138,6 +138,67 @@ nohup npm start -- --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 cd "$PROJECT_DIR"
 
+# Create systemd service for backend
+BACKEND_SERVICE_PATH="/etc/systemd/system/factory-iot-backend.service"
+cat <<EOF | sudo tee $BACKEND_SERVICE_PATH > /dev/null
+[Unit]
+Description=Factory IoT Backend
+After=network.target
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$PROJECT_DIR/backend
+Environment=PATH=$PROJECT_DIR/backend/venv/bin
+ExecStart=$PROJECT_DIR/backend/venv/bin/python app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Create systemd service for frontend
+FRONTEND_SERVICE_PATH="/etc/systemd/system/factory-iot-frontend.service"
+cat <<EOF | sudo tee $FRONTEND_SERVICE_PATH > /dev/null
+[Unit]
+Description=Factory IoT Frontend
+After=network.target factory-iot-backend.service
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$PROJECT_DIR/frontend
+ExecStart=/usr/bin/npm start -- --port $FRONTEND_PORT
+Restart=always
+RestartSec=10
+Environment=PORT=$FRONTEND_PORT
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload systemd and enable services
+sudo systemctl daemon-reload
+sudo systemctl enable factory-iot-backend.service
+sudo systemctl enable factory-iot-frontend.service
+
+# Start services
+sudo systemctl start factory-iot-backend.service
+sudo systemctl start factory-iot-frontend.service
+
+# Print status
+echo "[8/8] Systemd services created and enabled."
+echo "- Backend: systemctl status factory-iot-backend.service"
+echo "- Frontend: systemctl status factory-iot-frontend.service"
+echo "- Both services will start automatically after reboot."
+echo "To check status:"
+echo "  systemctl status factory-iot-backend.service"
+echo "  systemctl status factory-iot-frontend.service"
+echo "To view logs:"
+echo "  journalctl -u factory-iot-backend.service -f"
+echo "  journalctl -u factory-iot-frontend.service -f"
+
 # Done
 echo "[7/8] All services are running."
 echo "- Backend: http://localhost:$BACKEND_PORT (log: backend.log)"
