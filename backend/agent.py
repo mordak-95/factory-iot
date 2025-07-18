@@ -7,7 +7,7 @@ CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://localhost:5000')
 DEVICE_ID = os.getenv('DEVICE_ID')
 DEVICE_TOKEN = os.getenv('DEVICE_TOKEN')
 RELAY_CONFIG_PATH = 'relay_config.json'
-SYNC_INTERVAL = 30  # seconds
+SYNC_INTERVAL = 5  # seconds
 
 if not DEVICE_ID or not DEVICE_TOKEN:
     print('ERROR: DEVICE_ID and DEVICE_TOKEN must be set as environment variables.')

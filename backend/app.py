@@ -24,7 +24,7 @@ DEVICE_ID = os.getenv('DEVICE_ID')
 DEVICE_TOKEN = os.getenv('DEVICE_TOKEN')
 CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://localhost:5000')
 RELAY_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'relay_config.json')
-SYNC_INTERVAL = 30
+SYNC_INTERVAL = 5
 
 # Load configuration
 def load_config():
