@@ -56,20 +56,34 @@ if [ -z "$DB_PORT" ]; then
   DB_PORT=5432
 fi
 
+# Check if database exists
+db_exists=$(sudo -u postgres psql -p $DB_PORT -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME';")
+
 # Setup and configure PostgreSQL
 echo "[4/8] Setting up PostgreSQL on port $DB_PORT..."
 sudo systemctl enable postgresql
 sudo systemctl start postgresql
-sudo -u postgres psql -p $DB_PORT -c "CREATE DATABASE $DB_NAME;" || true
-sudo -u postgres psql -p $DB_PORT -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
-sudo -u postgres psql -p $DB_PORT -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+if [ "$db_exists" != "1" ]; then
+  sudo -u postgres psql -p $DB_PORT -c "CREATE DATABASE $DB_NAME;"
+  sudo -u postgres psql -p $DB_PORT -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
+  sudo -u postgres psql -p $DB_PORT -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+  DB_PASS_TO_USE=$DB_PASS
+else
+  echo "Database $DB_NAME already exists. Not changing user password."
+  # Try to read the old password from previous .env if exists
+  if [ -f "$PROJECT_DIR/backend/.env" ]; then
+    DB_PASS_TO_USE=$(grep DB_PASS "$PROJECT_DIR/backend/.env" | cut -d'=' -f2-)
+  else
+    DB_PASS_TO_USE="(unknown, check your previous .env)"
+  fi
+fi
 
 # Create .env for backend
 cd "$PROJECT_DIR/backend"
 cat > .env <<EOF
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
-DB_PASS=$DB_PASS
+DB_PASS=$DB_PASS_TO_USE
 DB_PORT=$DB_PORT
 DB_HOST=$DB_HOST
 EOF
@@ -97,6 +111,6 @@ echo "[7/8] All services are running."
 echo "- Backend: http://localhost:$BACKEND_PORT (log: backend.log)"
 echo "- Frontend: http://localhost:$FRONTEND_PORT (log: frontend.log)"
 echo "- PostgreSQL: host $DB_HOST, port $DB_PORT, database $DB_NAME, user $DB_USER"
-echo "- Database password: $DB_PASS"
+echo "- Database password: $DB_PASS_TO_USE"
 echo "To stop the services, run:"
 echo "  kill $BACKEND_PID $FRONTEND_PID" 
