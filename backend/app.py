@@ -96,7 +96,7 @@ def load_relay_config():
     if RELAY_ENABLED:
         relay_objs = {}
         for r in relay_defs:
-            relay_objs[r['id']] = OutputDevice(r['gpio_pin'])
+            relay_objs[str(r['id'])] = OutputDevice(r['gpio_pin'])
     print(f"[backend] Loaded relay config: {relay_defs}")
 
 def sync_relay_config():
@@ -297,8 +297,8 @@ def get_relays():
     status = {}
     for r in relay_defs:
         relay_id = r['id']
-        obj = relay_objs.get(relay_id)
-        status[relay_id] = obj.value if obj else False
+        obj = relay_objs.get(str(relay_id))
+        status[str(relay_id)] = obj.value if obj else False
     return jsonify({"relays": status})
 
 @app.route('/api/relays/<relay_id>', methods=['POST'])
@@ -307,13 +307,13 @@ def control_relay(relay_id):
     if not RELAY_ENABLED:
         return jsonify({"error": "Relay control not available on this system."}), 501
     relay_def = next((r for r in relay_defs if str(r['id']) == str(relay_id)), None)
-    if not relay_def or relay_id not in relay_objs:
+    if not relay_def or str(relay_id) not in relay_objs:
         return jsonify({"error": "Relay not found"}), 404
     data = request.get_json()
     if not data or "action" not in data:
         return jsonify({"error": "Missing 'action' in request body"}), 400
     action = data["action"].lower()
-    relay = relay_objs[relay_id]
+    relay = relay_objs[str(relay_id)]
     if action == "on":
         relay.on()
         update_central_status(relay_id, True)
