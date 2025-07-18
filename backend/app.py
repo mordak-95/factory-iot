@@ -97,6 +97,11 @@ def load_relay_config():
         relay_objs = {}
         for r in relay_defs:
             relay_objs[str(r['id'])] = OutputDevice(r['gpio_pin'])
+            # Sync relay state with status
+            if r.get('status'):
+                relay_objs[str(r['id'])].on()
+            else:
+                relay_objs[str(r['id'])].off()
     print(f"[backend] Loaded relay config: {relay_defs}")
 
 def sync_relay_config():
