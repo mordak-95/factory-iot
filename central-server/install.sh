@@ -26,11 +26,23 @@ DB_HOST="localhost"
 BACKEND_PORT="5000"
 FRONTEND_PORT="3000"
 
+# Backup .env if exists before cleanup
+ENV_PATH="$PROJECT_DIR/backend/.env"
+ENV_BAK_PATH="$PROJECT_DIR/backend/.env.bak"
+if [ -f "$ENV_PATH" ]; then
+  cp "$ENV_PATH" "$ENV_BAK_PATH"
+fi
+
 # Clean up previous installations (just in case)
 echo "[0/8] Cleaning up previous installations..."
 rm -rf "$PROJECT_DIR/backend/venv" "$PROJECT_DIR/backend.log" "$PROJECT_DIR/frontend.log"
 if [ -d "$PROJECT_DIR/frontend/node_modules" ]; then
   rm -rf "$PROJECT_DIR/frontend/node_modules" 2>/dev/null || (find "$PROJECT_DIR/frontend/node_modules" -type f -exec rm -f {} + && find "$PROJECT_DIR/frontend/node_modules" -type d -empty -delete)
+fi
+
+# Restore .env if backup exists
+if [ -f "$ENV_BAK_PATH" ]; then
+  mv "$ENV_BAK_PATH" "$ENV_PATH"
 fi
 
 # Install prerequisites
@@ -60,7 +72,6 @@ fi
 db_exists=$(sudo -u postgres psql -p $DB_PORT -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME';")
 
 # Always check .env in backend directory for previous password
-ENV_PATH="$PROJECT_DIR/backend/.env"
 if [ -f "$ENV_PATH" ]; then
   PREV_DB_PASS=$(grep '^DB_PASS=' "$ENV_PATH" | cut -d'=' -f2-)
 else
