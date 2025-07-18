@@ -8,11 +8,12 @@ This project uses [Tailwind CSS](https://tailwindcss.com/) for all styling. All 
 - Responsive and accessible
 
 ## Development
-- To install dependencies: `yarn install`
-- To start: `yarn start`
+- To install dependencies: `npm install`
+- To start: `npm start`
+- To build: `npm run build`
 
 ## Customizing Theme
 Edit `tailwind.config.js` to adjust colors, fonts, or extend the theme.
 
 ## Removing Old CSS
-No `.css` files are used. If you add new components, use Tailwind classes only. 
+No `.css` files are used except for Tailwind imports. If you add new components, use Tailwind classes only. 

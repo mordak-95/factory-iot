@@ -115,10 +115,9 @@ echo "[6/8] Setting up frontend..."
 cd "$PROJECT_DIR/frontend"
 npm install
 
-# Install Tailwind CSS and @tailwindcss/postcss if not already present
+# Ensure tailwind.config.js exists
 if [ ! -f "tailwind.config.js" ]; then
-  echo "Installing Tailwind CSS and initializing config..."
-  npm install -D tailwindcss @tailwindcss/postcss
+  echo "Initializing Tailwind CSS config..."
   npx tailwindcss init
 fi
 

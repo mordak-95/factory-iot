@@ -8,8 +8,7 @@
     "react-scripts": "5.0.1"
   },
   "devDependencies": {
-    "tailwindcss": "^4.1.11",
-    "@tailwindcss/postcss": "^1.0.0"
+    "tailwindcss": "^4.1.11"
   },
   "scripts": {
     "start": "react-scripts start",
