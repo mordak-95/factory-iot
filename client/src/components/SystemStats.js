@@ -16,16 +16,16 @@ const SystemStats = ({ stats }) => {
   };
 
   const ProgressBar = ({ value, max, label, unit = '%' }) => (
-    <div className="space-y-2">
+    <div className="space-y-1">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-gray-300">{label}</span>
-        <span className="text-sm text-gray-400">
+        <span className="text-xs font-medium text-gray-300">{label}</span>
+        <span className="text-xs text-gray-400">
           {value}{unit}
         </span>
       </div>
-      <div className="w-full bg-gray-700 rounded-full h-1.5">
+      <div className="w-full bg-gray-700 rounded-full h-1">
         <div 
-          className={`h-1.5 rounded-full transition-all duration-300 ${getProgressColor((value / max) * 100)}`}
+          className={`h-1 rounded-full transition-all duration-300 ${getProgressColor((value / max) * 100)}`}
           style={{ width: `${(value / max) * 100}%` }}
         />
       </div>
@@ -33,20 +33,20 @@ const SystemStats = ({ stats }) => {
   );
 
   const StatCard = ({ title, icon, mainValue, mainUnit, details, progress }) => (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="text-xl">{icon}</div>
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
+    <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-3">
+      <div className="flex items-center space-x-2 mb-2">
+        <div className="text-sm">{icon}</div>
+        <h3 className="text-xs font-semibold text-white">{title}</h3>
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-baseline space-x-1">
-          <span className="text-2xl font-bold text-white">{mainValue}</span>
-          <span className="text-sm text-gray-400">{mainUnit}</span>
+          <span className="text-lg font-bold text-white">{mainValue}</span>
+          <span className="text-xs text-gray-400">{mainUnit}</span>
         </div>
         
         {details && (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {details.map((detail, index) => (
               <p key={index} className="text-xs text-gray-400">{detail}</p>
             ))}
@@ -66,8 +66,8 @@ const SystemStats = ({ stats }) => {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4">
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {/* CPU Card */}
         <StatCard
           title="CPU"
@@ -75,13 +75,12 @@ const SystemStats = ({ stats }) => {
           mainValue={stats.cpu.percent.toFixed(1)}
           mainUnit="%"
           details={[
-            `Cores: ${stats.cpu.count}`,
-            stats.cpu.frequency && `Freq: ${(stats.cpu.frequency.current / 1000).toFixed(1)} GHz`
-          ].filter(Boolean)}
+            `Cores: ${stats.cpu.count}`
+          ]}
           progress={{
             value: stats.cpu.percent,
             max: 100,
-            label: "CPU Usage",
+            label: "Usage",
             unit: "%"
           }}
         />
@@ -93,13 +92,12 @@ const SystemStats = ({ stats }) => {
           mainValue={stats.memory.percent.toFixed(1)}
           mainUnit="%"
           details={[
-            `Used: ${formatBytes(stats.memory.used)}`,
-            `Total: ${formatBytes(stats.memory.total)}`
+            `Used: ${formatBytes(stats.memory.used)}`
           ]}
           progress={{
             value: stats.memory.percent,
             max: 100,
-            label: "Memory Usage",
+            label: "Usage",
             unit: "%"
           }}
         />
@@ -111,13 +109,12 @@ const SystemStats = ({ stats }) => {
           mainValue={stats.disk.percent.toFixed(1)}
           mainUnit="%"
           details={[
-            `Used: ${formatBytes(stats.disk.used)}`,
-            `Free: ${formatBytes(stats.disk.free)}`
+            `Used: ${formatBytes(stats.disk.used)}`
           ]}
           progress={{
             value: stats.disk.percent,
             max: 100,
-            label: "Disk Usage",
+            label: "Usage",
             unit: "%"
           }}
         />
@@ -137,23 +134,25 @@ const SystemStats = ({ stats }) => {
         {/* Temperature Card */}
         {stats.temperature && stats.temperature.current !== undefined && (
           <StatCard
-            title="Chipset Temp"
+            title="Temp"
             icon="🌡️"
             mainValue={stats.temperature.current.toFixed(1)}
             mainUnit="°C"
             details={[
-              stats.temperature.high !== null && `High: ${stats.temperature.high}°C`,
-              stats.temperature.critical !== null && `Critical: ${stats.temperature.critical}°C`,
               `Sensor: ${stats.temperature.sensor}`
-            ].filter(Boolean)}
+            ]}
           />
         )}
-      </div>
 
-      <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
-        <span className="text-xs text-gray-500">
-          Last Update: {new Date(stats.timestamp).toLocaleTimeString()}
-        </span>
+        {/* Timestamp */}
+        <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-3 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-xs text-gray-400 mb-1">Last Update</div>
+            <div className="text-xs text-white">
+              {new Date(stats.timestamp).toLocaleTimeString()}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
