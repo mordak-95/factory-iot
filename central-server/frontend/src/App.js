@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 // Main Dashboard Component
-function Dashboard() {
+function Dashboard({ isDarkMode }) {
   const [devices, setDevices] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -227,7 +227,9 @@ function Dashboard() {
 
   if (initialLoading) {
     return (
-      <div className="h-screen bg-gray-900 flex items-center justify-center">
+      <div className={`h-screen flex items-center justify-center transition-colors duration-200 ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
         <LoadingSpinner size="xl" text="Connecting to Central IoT Server..." />
       </div>
     );
@@ -256,7 +258,9 @@ function Dashboard() {
           
           {/* Device List - Left */}
           <div className="col-span-4">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 h-full">
+            <div className={`border rounded-lg p-4 h-full transition-colors duration-200 ${
+              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-white">DEVICES</h2>
                 <div className="flex items-center space-x-2">
@@ -283,6 +287,7 @@ function Dashboard() {
                       onEdit={openEditDevice}
                       onDelete={openDeleteDevice}
                       onGetToken={handleGetToken}
+                      isDarkMode={isDarkMode}
                     />
                   ))}
                 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Server, Wifi, WifiOff, Edit, Trash2, Key } from 'lucide-react';
 
-const DeviceCard = ({ device, isSelected, onClick, onEdit, onDelete, onGetToken }) => {
+const DeviceCard = ({ device, isSelected, onClick, onEdit, onDelete, onGetToken, isDarkMode }) => {
   const getStatusColor = (isActive) => {
     return isActive ? 'bg-green-500' : 'bg-red-500';
   };
@@ -30,24 +30,38 @@ const DeviceCard = ({ device, isSelected, onClick, onEdit, onDelete, onGetToken 
       className={`p-3 rounded-lg border cursor-pointer transition-all ${
         isSelected
           ? 'bg-blue-600/20 border-blue-500'
-          : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+          : isDarkMode
+            ? 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+            : 'bg-white border-gray-200 hover:border-gray-300'
       }`}
       onClick={() => onClick(device)}
     >
       <div className="flex items-center space-x-3">
-        <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
-          <Server className="w-4 h-4 text-white" />
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+          isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+        }`}>
+          <Server className={`w-4 h-4 ${
+            isDarkMode ? 'text-white' : 'text-gray-700'
+          }`} />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-medium text-white">{device.name}</h3>
-          <p className="text-xs text-gray-400">ID: {device.id}</p>
+          <h3 className={`text-sm font-medium ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>{device.name}</h3>
+          <p className={`text-xs ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>ID: {device.id}</p>
           {device.ip_address && (
-            <p className="text-xs text-gray-400">IP: {device.ip_address}</p>
+            <p className={`text-xs ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>IP: {device.ip_address}</p>
           )}
         </div>
         <div className="flex flex-col items-end space-y-1">
           <div className={`w-2 h-2 rounded-full ${getStatusColor(device.is_active)}`}></div>
-          <div className="text-xs text-gray-400">
+          <div className={`text-xs ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             {device.is_active ? (
               <Wifi className="w-3 h-3 text-green-400" />
             ) : (
@@ -58,7 +72,9 @@ const DeviceCard = ({ device, isSelected, onClick, onEdit, onDelete, onGetToken 
       </div>
       
       {/* Action Buttons */}
-      <div className="flex justify-end space-x-2 mt-3 pt-2 border-t border-gray-600">
+      <div className={`flex justify-end space-x-2 mt-3 pt-2 border-t ${
+        isDarkMode ? 'border-gray-600' : 'border-gray-200'
+      }`}>
         <button
           onClick={handleGetToken}
           className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
