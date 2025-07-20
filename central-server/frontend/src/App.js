@@ -239,6 +239,12 @@ function Dashboard() {
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-400">Total: {totalDevices}</span>
                   <span className="text-sm text-green-400">Active: {activeDevices}</span>
+                  <button
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                    onClick={() => setShowAddDevice(true)}
+                  >
+                    Add Device
+                  </button>
                 </div>
               </div>
               
