@@ -493,102 +493,31 @@ function Dashboard() {
   );
 }
 
-// Navigation Component
-function Navigation({ serverIp, currentPath }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    if (serverIp && serverIp !== 'Error') {
-      const urlToCopy = `http://${serverIp}:5000`;
-      
-      // Fallback method for older browsers or when clipboard API is not available
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(urlToCopy)
-          .then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1200);
-          })
-          .catch(() => {
-            // Fallback to document.execCommand
-            fallbackCopyTextToClipboard(urlToCopy);
-          });
-      } else {
-        // Fallback to document.execCommand
-        fallbackCopyTextToClipboard(urlToCopy);
-      }
-    }
-  };
 
-  const fallbackCopyTextToClipboard = (text) => {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    try {
-      const successful = document.execCommand('copy');
-      if (successful) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
-      }
-    } catch (err) {
-      console.error('Fallback: Oops, unable to copy', err);
-    }
-    
-    document.body.removeChild(textArea);
-  };
-
-  return (
-    <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex items-center justify-between">
-      <div className="flex items-center space-x-6">
-        <Link 
-          to="/" 
-          className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-            currentPath === '/' 
-              ? 'bg-blue-600 text-white' 
-              : 'text-gray-300 hover:text-white hover:bg-gray-700'
-          }`}
-        >
-          <Server className="w-5 h-5" />
-          <span className="font-semibold">Devices</span>
-        </Link>
-        <Link 
-          to="/health" 
-          className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-            currentPath === '/health' 
-              ? 'bg-blue-600 text-white' 
-              : 'text-gray-300 hover:text-white hover:bg-gray-700'
-          }`}
-        >
-          <Heart className="w-5 h-5" />
-          <span className="font-semibold">Health Check</span>
-        </Link>
-      </div>
-      
-      <div className="flex items-center space-x-2 bg-gray-700 px-3 py-2 rounded-lg">
-        <span className="text-xs text-gray-300">Server IP: {serverIp || '...'}</span>
-        <button
-          className="ml-2 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
-          onClick={handleCopy}
-          disabled={!serverIp}
-        >
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
-      </div>
-    </nav>
-  );
-}
 
 // Main App Component
 function App() {
   const [serverIp, setServerIp] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage for saved preference
+    const saved = localStorage.getItem('darkMode');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [lastUpdate, setLastUpdate] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const location = useLocation();
+
+  // Save dark mode preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    
+    // Apply dark mode to document
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
@@ -606,7 +535,11 @@ function App() {
   }, []);
 
   return (
-    <div className="h-screen bg-gray-900 overflow-hidden">
+    <div className={`h-screen overflow-hidden transition-colors duration-200 ${
+      isDarkMode 
+        ? 'bg-gray-900 text-white' 
+        : 'bg-gray-50 text-gray-900'
+    }`}>
       <div className="flex h-full">
         {/* Sidebar */}
         <Sidebar 
@@ -616,8 +549,7 @@ function App() {
         
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          <Header lastUpdate={lastUpdate} />
-          <Navigation serverIp={serverIp} currentPath={location.pathname} />
+          <Header lastUpdate={lastUpdate} serverIp={serverIp} isDarkMode={isDarkMode} />
           
           <div className="flex-1 overflow-hidden">
             <Routes>
