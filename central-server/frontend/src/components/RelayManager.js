@@ -11,6 +11,8 @@ const RelayManager = ({ selectedDevice, onRelayUpdate }) => {
   const [form, setForm] = useState({ name: '', gpio_pin: '', status: false });
   const [editForm, setEditForm] = useState({ id: null, name: '', gpio_pin: '', status: false });
   const [toggleLoading, setToggleLoading] = useState({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [relayToDelete, setRelayToDelete] = useState(null);
 
   const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
 
@@ -136,6 +138,11 @@ const RelayManager = ({ selectedDevice, onRelayUpdate }) => {
     setShowEdit(true);
   };
 
+  const openDeleteConfirm = (relay) => {
+    setRelayToDelete(relay);
+    setShowDeleteConfirm(true);
+  };
+
   if (!selectedDevice) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -173,8 +180,10 @@ const RelayManager = ({ selectedDevice, onRelayUpdate }) => {
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto space-y-2">
-          {relays.map(relay => (
-            <div key={relay.id} className="bg-gray-700/50 border border-gray-600 rounded-lg p-3">
+          {relays
+            .sort((a, b) => a.id - b.id)
+            .map(relay => (
+              <div key={relay.id} className="bg-gray-700/50 border border-gray-600 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
@@ -208,7 +217,7 @@ const RelayManager = ({ selectedDevice, onRelayUpdate }) => {
                   
                   <button
                     className="bg-red-600 hover:bg-red-700 text-white p-1 rounded transition-colors"
-                    onClick={() => handleDeleteRelay(relay.id)}
+                    onClick={() => openDeleteConfirm(relay)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -303,6 +312,36 @@ const RelayManager = ({ selectedDevice, onRelayUpdate }) => {
                 Save Changes
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md shadow-xl relative">
+            <button className="absolute top-2 right-3 text-gray-400 hover:text-red-400 text-xl" onClick={() => setShowDeleteConfirm(false)}>&times;</button>
+            <h3 className="text-xl font-bold text-red-400 mb-4">Delete Relay</h3>
+            <p className="text-gray-200 mb-4">
+              Are you sure you want to delete the relay "{relayToDelete?.name}"? This action cannot be undone.
+            </p>
+            <div className="flex gap-4">
+              <button 
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold" 
+                onClick={() => {
+                  handleDeleteRelay(relayToDelete.id);
+                  setShowDeleteConfirm(false);
+                }}
+              >
+                Delete
+              </button>
+              <button 
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded font-semibold" 
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

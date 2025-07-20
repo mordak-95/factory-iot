@@ -5,7 +5,6 @@ import Sidebar from './components/Sidebar';
 import DeviceCard from './components/DeviceCard';
 import RelayManager from './components/RelayManager';
 import LoadingSpinner from './components/LoadingSpinner';
-import ConnectionStatus from './components/ConnectionStatus';
 import HealthCheck from './HealthCheck';
 import { 
   Server, 
@@ -249,17 +248,19 @@ function Dashboard() {
               </div>
               
               <div className="space-y-3 overflow-y-auto h-[calc(100%-60px)]">
-                {devices.map(device => (
-                  <DeviceCard
-                    key={device.id}
-                    device={device}
-                    isSelected={selectedDevice?.id === device.id}
-                    onClick={setSelectedDevice}
-                    onEdit={openEditDevice}
-                    onDelete={openDeleteDevice}
-                    onGetToken={handleGetToken}
-                  />
-                ))}
+                {devices
+                  .sort((a, b) => a.id - b.id)
+                  .map(device => (
+                    <DeviceCard
+                      key={device.id}
+                      device={device}
+                      isSelected={selectedDevice?.id === device.id}
+                      onClick={setSelectedDevice}
+                      onEdit={openEditDevice}
+                      onDelete={openDeleteDevice}
+                      onGetToken={handleGetToken}
+                    />
+                  ))}
                 
                 {devices.length === 0 && (
                   <div className="text-center py-8">
@@ -496,11 +497,48 @@ function Dashboard() {
 function Navigation({ serverIp, currentPath }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
-    if (serverIp) {
-      navigator.clipboard.writeText(serverIp);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
+    if (serverIp && serverIp !== 'Error') {
+      const urlToCopy = `http://${serverIp}:5000`;
+      
+      // Fallback method for older browsers or when clipboard API is not available
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(urlToCopy)
+          .then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          })
+          .catch(() => {
+            // Fallback to document.execCommand
+            fallbackCopyTextToClipboard(urlToCopy);
+          });
+      } else {
+        // Fallback to document.execCommand
+        fallbackCopyTextToClipboard(urlToCopy);
+      }
     }
+  };
+
+  const fallbackCopyTextToClipboard = (text) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      }
+    } catch (err) {
+      console.error('Fallback: Oops, unable to copy', err);
+    }
+    
+    document.body.removeChild(textArea);
   };
 
   return (
@@ -569,8 +607,6 @@ function App() {
 
   return (
     <div className="h-screen bg-gray-900 overflow-hidden">
-      <ConnectionStatus isConnected={isConnected} lastUpdate={lastUpdate} />
-      
       <div className="flex h-full">
         {/* Sidebar */}
         <Sidebar 

@@ -112,78 +112,20 @@ function HealthCheck() {
             isError={!status || status.status !== 'ok'}
           />
 
-          {/* Database Status */}
+          {/* Model Status */}
           <StatusCard
-            title="Database"
+            title="Database Models"
             icon={Database}
-            status={status?.db === 'connected'}
-            details={status ? `Database: ${status.db}` : 'Database connection failed'}
-            isError={!status || status.db !== 'connected'}
+            status={modelStatus?.all_ok}
+            details={modelStatus ? 
+              (modelStatus.all_ok ? 'All models/tables are created' : 'Some tables are missing') : 
+              'Model status unavailable'
+            }
+            isError={!modelStatus || !modelStatus.all_ok}
           />
         </div>
 
-        {/* Model Status */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
-              <Database className="w-4 h-4 text-white" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">Database Models</h2>
-          </div>
-          
-          {modelStatus ? (
-            modelStatus.error ? (
-              <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-                {modelStatus.error}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  {modelStatus.all_ok ? (
-                    <CheckCircle className="w-5 h-5 text-green-400" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-yellow-400" />
-                  )}
-                  <span className={`font-medium ${
-                    modelStatus.all_ok ? 'text-green-400' : 'text-yellow-400'
-                  }`}>
-                    {modelStatus.all_ok ? 'All models/tables are created.' : 'Some tables are missing!'}
-                  </span>
-                </div>
-                
-                {!modelStatus.all_ok && (
-                  <div className="bg-yellow-900/20 border border-yellow-500 rounded-lg p-4">
-                    <h3 className="text-yellow-300 font-medium mb-2">Missing Tables:</h3>
-                    <ul className="space-y-1">
-                      {Object.entries(modelStatus.tables).map(([table, exists]) =>
-                        !exists ? (
-                          <li key={table} className="flex items-center space-x-2 text-yellow-200">
-                            <XCircle className="w-4 h-4" />
-                            <span>{table}</span>
-                          </li>
-                        ) : null
-                      )}
-                    </ul>
-                  </div>
-                )}
-                
-                {modelStatus.all_ok && (
-                  <div className="bg-green-900/20 border border-green-500 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 text-green-300">
-                      <CheckCircle className="w-5 h-5" />
-                      <span className="font-medium">All database tables are properly configured</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          ) : (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
-              <span className="text-gray-400">Checking model status...</span>
-            </div>
-          )}
-        </div>
+
 
         {/* System Information */}
         {status && (
