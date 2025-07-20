@@ -361,9 +361,13 @@ function Dashboard({ isDarkMode }) {
                     </div>
                   </div>
                 
-                <div className="bg-gray-700/50 rounded-lg p-3 h-32 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-gray-400 text-sm mb-2">Network Map</div>
+                                  <div className={`rounded-lg p-3 h-32 flex items-center justify-center transition-colors duration-200 ${
+                    isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'
+                  }`}>
+                    <div className="text-center">
+                      <div className={`text-sm mb-2 transition-colors duration-200 ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>Network Map</div>
                     <div className="flex space-x-2">
                       <Server className="w-4 h-4 text-blue-400" />
                       <Monitor className="w-4 h-4 text-green-400" />
@@ -382,7 +386,9 @@ function Dashboard({ isDarkMode }) {
       {/* Add Device Modal */}
       {showAddDevice && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md shadow-xl relative">
+          <div className={`rounded-lg p-6 w-full max-w-md shadow-xl relative transition-colors duration-200 ${
+            isDarkMode ? 'bg-gray-900' : 'bg-white'
+          }`}>
             <button className="absolute top-2 right-3 text-gray-400 hover:text-red-400 text-xl" onClick={() => setShowAddDevice(false)}>&times;</button>
             <h3 className="text-xl font-bold text-blue-300 mb-4">Add Device</h3>
             <form onSubmit={handleAddDevice} className="space-y-4">
@@ -613,9 +619,9 @@ function App() {
           
           <div className="flex-1 overflow-hidden">
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Dashboard isDarkMode={isDarkMode} />} />
               <Route path="/health" element={<HealthCheck />} />
-              <Route path="*" element={<Dashboard />} />
+              <Route path="*" element={<Dashboard isDarkMode={isDarkMode} />} />
             </Routes>
           </div>
         </div>

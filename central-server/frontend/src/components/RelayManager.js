@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Zap, Edit, Trash2, Plus } from 'lucide-react';
 
-const RelayManager = ({ selectedDevice, onRelayUpdate }) => {
+const RelayManager = ({ selectedDevice, onRelayUpdate, isDarkMode }) => {
   const [relays, setRelays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -154,7 +154,9 @@ const RelayManager = ({ selectedDevice, onRelayUpdate }) => {
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-white">Relay Management</h2>
+        <h2 className={`text-lg font-bold transition-colors duration-200 ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>Relay Management</h2>
         <button 
           className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors flex items-center space-x-1"
           onClick={() => setShowAdd(true)}
@@ -172,26 +174,40 @@ const RelayManager = ({ selectedDevice, onRelayUpdate }) => {
 
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <p className="text-gray-400">Loading relays...</p>
+          <p className={`transition-colors duration-200 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>Loading relays...</p>
         </div>
       ) : relays.length === 0 ? (
         <div className="flex items-center justify-center h-32">
-          <p className="text-gray-400">No relays found for this device</p>
+          <p className={`transition-colors duration-200 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>No relays found for this device</p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto space-y-2">
           {relays
             .sort((a, b) => a.id - b.id)
             .map(relay => (
-              <div key={relay.id} className="bg-gray-700/50 border border-gray-600 rounded-lg p-3">
+              <div key={relay.id} className={`border rounded-lg p-3 transition-colors duration-200 ${
+                isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'
+              }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-white" />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+                  }`}>
+                    <Zap className={`w-4 h-4 ${
+                      isDarkMode ? 'text-white' : 'text-gray-700'
+                    }`} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-white">{relay.name}</h3>
-                    <p className="text-xs text-gray-400">GPIO: {relay.gpio_pin}</p>
+                    <h3 className={`text-sm font-medium transition-colors duration-200 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>{relay.name}</h3>
+                    <p className={`text-xs transition-colors duration-200 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>GPIO: {relay.gpio_pin}</p>
                   </div>
                 </div>
                 
