@@ -261,11 +261,15 @@ function Dashboard({ isDarkMode }) {
             <div className={`border rounded-lg p-4 h-full transition-colors duration-200 ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white">DEVICES</h2>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-400">Total: {totalDevices}</span>
-                  <span className="text-sm text-green-400">Active: {activeDevices}</span>
+                              <div className="flex items-center justify-between mb-4">
+                  <h2 className={`text-lg font-bold transition-colors duration-200 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>DEVICES</h2>
+                  <div className="flex items-center space-x-2">
+                    <span className={`text-sm transition-colors duration-200 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Total: {totalDevices}</span>
+                    <span className="text-sm text-green-400">Active: {activeDevices}</span>
                   <button
                     className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
                     onClick={() => setShowAddDevice(true)}
@@ -293,7 +297,9 @@ function Dashboard({ isDarkMode }) {
                 
                 {devices.length === 0 && (
                   <div className="text-center py-8">
-                    <p className="text-gray-400 mb-4">No devices found</p>
+                    <p className={`mb-4 transition-colors duration-200 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>No devices found</p>
                     <button
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-colors"
                       onClick={() => setShowAddDevice(true)}
@@ -308,37 +314,52 @@ function Dashboard({ isDarkMode }) {
 
           {/* Relay Management - Center */}
           <div className="col-span-5">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 h-full">
+            <div className={`border rounded-lg p-4 h-full transition-colors duration-200 ${
+              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
               <RelayManager 
                 selectedDevice={selectedDevice}
                 onRelayUpdate={() => {
                   // Refresh devices to get updated relay counts
                   fetchDevices(false);
                 }}
+                isDarkMode={isDarkMode}
               />
             </div>
           </div>
 
           {/* System Status - Right */}
           <div className="col-span-3">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 h-full">
-              <h2 className="text-lg font-bold text-white mb-4">System Status</h2>
+            <div className={`border rounded-lg p-4 h-full transition-colors duration-200 ${
+              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
+              <h2 className={`text-lg font-bold mb-4 transition-colors duration-200 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>System Status</h2>
               
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{totalDevices}</div>
-                    <div className="text-xs text-gray-400">Total</div>
+                              <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold transition-colors duration-200 ${
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      }`}>{totalDevices}</div>
+                      <div className={`text-xs transition-colors duration-200 ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>Total</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-400">{activeDevices}</div>
+                      <div className={`text-xs transition-colors duration-200 ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>Online</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-400">{systemHealth}%</div>
+                      <div className={`text-xs transition-colors duration-200 ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>Health</div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-400">{activeDevices}</div>
-                    <div className="text-xs text-gray-400">Online</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-400">{systemHealth}%</div>
-                    <div className="text-xs text-gray-400">Health</div>
-                  </div>
-                </div>
                 
                 <div className="bg-gray-700/50 rounded-lg p-3 h-32 flex items-center justify-center">
                   <div className="text-center">
