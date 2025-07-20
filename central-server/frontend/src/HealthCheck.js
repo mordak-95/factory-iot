@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Activity, Database, Server, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
-function HealthCheck() {
+function HealthCheck({ isDarkMode }) {
   const [status, setStatus] = useState(null);
   const [modelStatus, setModelStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,14 +35,22 @@ function HealthCheck() {
   }, []);
 
   const StatusCard = ({ title, icon: Icon, status, details, isError = false }) => (
-    <div className={`bg-gray-800 border rounded-lg p-4 ${isError ? 'border-red-500' : 'border-gray-700'}`}>
+    <div className={`border rounded-lg p-4 transition-colors duration-200 ${
+      isDarkMode 
+        ? `bg-gray-800 ${isError ? 'border-red-500' : 'border-gray-700'}`
+        : `bg-white ${isError ? 'border-red-500' : 'border-gray-200'}`
+    }`}>
       <div className="flex items-center space-x-3 mb-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-          isError ? 'bg-red-600' : 'bg-gray-600'
+          isError ? 'bg-red-600' : (isDarkMode ? 'bg-gray-600' : 'bg-gray-200')
         }`}>
-          <Icon className="w-4 h-4 text-white" />
+          <Icon className={`w-4 h-4 ${
+            isDarkMode ? 'text-white' : 'text-gray-700'
+          }`} />
         </div>
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <h3 className={`text-lg font-semibold transition-colors duration-200 ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>{title}</h3>
       </div>
       
       <div className="space-y-2">
@@ -60,7 +68,9 @@ function HealthCheck() {
         </div>
         
         {details && (
-          <div className="text-sm text-gray-400">
+          <div className={`text-sm transition-colors duration-200 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             {details}
           </div>
         )}
@@ -73,7 +83,9 @@ function HealthCheck() {
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-400">Checking system health...</p>
+          <p className={`transition-colors duration-200 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>Checking system health...</p>
         </div>
       </div>
     );
@@ -83,14 +95,20 @@ function HealthCheck() {
     <div className="h-full p-6 overflow-y-auto">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className={`border rounded-lg p-6 transition-colors duration-200 ${
+          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <Activity className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">System Health Check</h1>
-              <p className="text-gray-400">Monitor backend services and database status</p>
+              <h1 className={`text-2xl font-bold transition-colors duration-200 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>System Health Check</h1>
+              <p className={`transition-colors duration-200 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Monitor backend services and database status</p>
             </div>
           </div>
           
@@ -129,21 +147,37 @@ function HealthCheck() {
 
         {/* System Information */}
         {status && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">System Information</h2>
+          <div className={`border rounded-lg p-6 transition-colors duration-200 ${
+            isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+          }`}>
+            <h2 className={`text-xl font-semibold mb-4 transition-colors duration-200 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>System Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-400">Backend Status</p>
-                <p className="text-white font-medium">{status.status}</p>
+                <p className={`text-sm transition-colors duration-200 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Backend Status</p>
+                <p className={`font-medium transition-colors duration-200 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>{status.status}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-400">Database Connection</p>
-                <p className="text-white font-medium">{status.db}</p>
+                <p className={`text-sm transition-colors duration-200 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Database Connection</p>
+                <p className={`font-medium transition-colors duration-200 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>{status.db}</p>
               </div>
               {status.timestamp && (
                 <div>
-                  <p className="text-sm text-gray-400">Last Check</p>
-                  <p className="text-white font-medium">
+                  <p className={`text-sm transition-colors duration-200 ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>Last Check</p>
+                  <p className={`font-medium transition-colors duration-200 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
                     {new Date(status.timestamp).toLocaleString()}
                   </p>
                 </div>

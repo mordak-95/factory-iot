@@ -247,25 +247,41 @@ const RelayManager = ({ selectedDevice, onRelayUpdate, isDarkMode }) => {
       {/* Add Relay Modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md shadow-xl relative">
+          <div className={`rounded-lg p-6 w-full max-w-md shadow-xl relative transition-colors duration-200 ${
+            isDarkMode ? 'bg-gray-900' : 'bg-white'
+          }`}>
             <button className="absolute top-2 right-3 text-gray-400 hover:text-red-400 text-xl" onClick={() => setShowAdd(false)}>&times;</button>
-            <h3 className="text-xl font-bold text-blue-300 mb-4">Add Relay</h3>
+            <h3 className={`text-xl font-bold mb-4 transition-colors duration-200 ${
+              isDarkMode ? 'text-blue-300' : 'text-blue-600'
+            }`}>Add Relay</h3>
             <form onSubmit={handleAddRelay} className="space-y-4">
               <div>
-                <label className="block text-gray-200 mb-1">Name *</label>
+                <label className={`block mb-1 transition-colors duration-200 ${
+                  isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                }`}>Name *</label>
                 <input 
                   type="text" 
-                  className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-600" 
+                  className={`w-full px-3 py-2 rounded border transition-colors duration-200 ${
+                    isDarkMode 
+                      ? 'bg-gray-800 text-white border-gray-600' 
+                      : 'bg-white text-gray-900 border-gray-300'
+                  }`}
                   value={form.name} 
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))} 
                   required 
                 />
               </div>
               <div>
-                <label className="block text-gray-200 mb-1">GPIO Pin *</label>
+                <label className={`block mb-1 transition-colors duration-200 ${
+                  isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                }`}>GPIO Pin *</label>
                 <input 
                   type="number" 
-                  className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-600" 
+                  className={`w-full px-3 py-2 rounded border transition-colors duration-200 ${
+                    isDarkMode 
+                      ? 'bg-gray-800 text-white border-gray-600' 
+                      : 'bg-white text-gray-900 border-gray-300'
+                  }`}
                   value={form.gpio_pin} 
                   onChange={e => setForm(f => ({ ...f, gpio_pin: e.target.value }))} 
                   required 
@@ -278,7 +294,9 @@ const RelayManager = ({ selectedDevice, onRelayUpdate, isDarkMode }) => {
                   checked={form.status} 
                   onChange={e => setForm(f => ({ ...f, status: e.target.checked }))} 
                 />
-                <label htmlFor="status" className="ml-2 text-gray-200">ON</label>
+                <label htmlFor="status" className={`ml-2 transition-colors duration-200 ${
+                  isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                }`}>ON</label>
               </div>
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold mt-2">
                 Add Relay
