@@ -41,6 +41,31 @@ function Dashboard() {
 
   const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
 
+  // Fallback clipboard copy function
+  const copyToClipboardFallback = (text) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        alert('Token copied to clipboard!');
+      } else {
+        alert('Failed to copy token. Please copy manually: ' + text);
+      }
+    } catch (err) {
+      alert('Failed to copy token. Please copy manually: ' + text);
+    }
+    
+    document.body.removeChild(textArea);
+  };
+
   const fetchDevices = async (isInitial = false) => {
     try {
       if (isInitial) {
@@ -472,8 +497,18 @@ function Dashboard() {
                 <button 
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold"
                   onClick={() => {
-                    navigator.clipboard.writeText(deviceToken);
-                    alert('Token copied to clipboard!');
+                    // Try modern clipboard API first
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                      navigator.clipboard.writeText(deviceToken)
+                        .then(() => alert('Token copied to clipboard!'))
+                        .catch(() => {
+                          // Fallback to old method
+                          copyToClipboardFallback(deviceToken);
+                        });
+                    } else {
+                      // Fallback to old method
+                      copyToClipboardFallback(deviceToken);
+                    }
                   }}
                 >
                   Copy Token
