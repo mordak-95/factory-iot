@@ -33,6 +33,9 @@ function Dashboard() {
   const [showEditDevice, setShowEditDevice] = useState(false);
   const [showDeleteDevice, setShowDeleteDevice] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState(null);
+  const [showTokenModal, setShowTokenModal] = useState(false);
+  const [deviceToken, setDeviceToken] = useState(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
   const [form, setForm] = useState({ name: '', ip_address: '', description: '', is_active: true });
   const [editForm, setEditForm] = useState({ id: null, name: '', ip_address: '', description: '', is_active: true });
   const [formError, setFormError] = useState(null);
@@ -162,6 +165,31 @@ function Dashboard() {
     setShowDeleteDevice(true);
   };
 
+  const handleGetToken = async (device) => {
+    setTokenLoading(true);
+    setFormError(null);
+    
+    try {
+      const response = await fetch(`${backendUrl}/api/devices/${device.id}/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDeviceToken(data.token);
+        setShowTokenModal(true);
+      } else {
+        const errorData = await response.json();
+        setFormError(errorData.error || 'Failed to generate token');
+      }
+    } catch (err) {
+      setFormError('Failed to generate token');
+    } finally {
+      setTokenLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Initial load with loading
     fetchDevices(true);
@@ -203,7 +231,7 @@ function Dashboard() {
       <main className="flex-1 p-6 overflow-hidden">
         <div className="h-full grid grid-cols-12 gap-6">
           
-          {/* Device List - Left Top */}
+          {/* Device List - Left */}
           <div className="col-span-4">
             <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 h-full">
               <div className="flex items-center justify-between mb-4">
@@ -221,6 +249,9 @@ function Dashboard() {
                     device={device}
                     isSelected={selectedDevice?.id === device.id}
                     onClick={setSelectedDevice}
+                    onEdit={openEditDevice}
+                    onDelete={openDeleteDevice}
+                    onGetToken={handleGetToken}
                   />
                 ))}
                 
@@ -239,88 +270,23 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Selected Device Details - Center Top */}
+          {/* Relay Management - Center */}
           <div className="col-span-5">
             <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 h-full">
-              {selectedDevice ? (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-white">Device Details</h2>
-                    <div className="flex space-x-2">
-                      <button 
-                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                        onClick={() => openEditDevice(selectedDevice)}
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                        onClick={() => openDeleteDevice(selectedDevice.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-400">Status</p>
-                        <p className={`text-sm font-medium ${
-                          selectedDevice.is_active ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {selectedDevice.is_active ? 'ONLINE' : 'OFFLINE'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">Device ID</p>
-                        <p className="text-sm font-medium text-white">{selectedDevice.id}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-400">Device Name</p>
-                        <p className="text-sm font-medium text-white">{selectedDevice.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">IP Address</p>
-                        <p className="text-sm font-medium text-white">{selectedDevice.ip_address || 'N/A'}</p>
-                      </div>
-                    </div>
-                    
-                    {selectedDevice.description && (
-                      <div>
-                        <p className="text-xs text-gray-400">Description</p>
-                        <p className="text-sm font-medium text-white">{selectedDevice.description}</p>
-                      </div>
-                    )}
-                    
-                    <div className="pt-4 border-t border-gray-700">
-                      <h3 className="text-sm font-medium text-white mb-3">Quick Actions</h3>
-                      <div className="flex space-x-3">
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition-colors">
-                          Ping Device
-                        </button>
-                        <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors">
-                          Restart
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-400">Select a device to view details</p>
-                </div>
-              )}
+              <RelayManager 
+                selectedDevice={selectedDevice}
+                onRelayUpdate={() => {
+                  // Refresh devices to get updated relay counts
+                  fetchDevices(false);
+                }}
+              />
             </div>
           </div>
 
-          {/* Overview/Stats - Right Top */}
+          {/* System Status - Right */}
           <div className="col-span-3">
             <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 h-full">
-              <h2 className="text-lg font-bold text-white mb-4">Overview</h2>
+              <h2 className="text-lg font-bold text-white mb-4">System Status</h2>
               
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3">
@@ -352,18 +318,7 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Relay Management - Bottom */}
-          <div className="col-span-12">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 h-64">
-              <RelayManager 
-                selectedDevice={selectedDevice}
-                onRelayUpdate={() => {
-                  // Refresh devices to get updated relay counts
-                  fetchDevices(false);
-                }}
-              />
-            </div>
-          </div>
+
         </div>
       </main>
 
@@ -487,6 +442,43 @@ function Dashboard() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Token Modal */}
+      {showTokenModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md shadow-xl relative">
+            <button className="absolute top-2 right-3 text-gray-400 hover:text-red-400 text-xl" onClick={() => setShowTokenModal(false)}>&times;</button>
+            <h3 className="text-xl font-bold text-blue-400 mb-4">Device Token</h3>
+            {tokenLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                <p className="text-gray-400">Generating token...</p>
+              </div>
+            ) : deviceToken ? (
+              <div>
+                <p className="text-gray-200 mb-4">Here's your device token. Copy it and keep it safe:</p>
+                <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 mb-4">
+                  <code className="text-sm text-green-400 break-all">{deviceToken}</code>
+                </div>
+                <button 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold"
+                  onClick={() => {
+                    navigator.clipboard.writeText(deviceToken);
+                    alert('Token copied to clipboard!');
+                  }}
+                >
+                  Copy Token
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-red-400">Failed to generate token</p>
+                {formError && <p className="text-red-400 text-sm mt-2">{formError}</p>}
+              </div>
+            )}
           </div>
         </div>
       )}

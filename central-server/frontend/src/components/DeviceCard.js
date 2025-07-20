@@ -1,13 +1,28 @@
 import React from 'react';
-import { Server, Wifi, WifiOff } from 'lucide-react';
+import { Server, Wifi, WifiOff, Edit, Trash2, Key } from 'lucide-react';
 
-const DeviceCard = ({ device, isSelected, onClick }) => {
+const DeviceCard = ({ device, isSelected, onClick, onEdit, onDelete, onGetToken }) => {
   const getStatusColor = (isActive) => {
     return isActive ? 'bg-green-500' : 'bg-red-500';
   };
 
   const getStatusText = (isActive) => {
     return isActive ? 'Online' : 'Offline';
+  };
+
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    onEdit(device);
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    onDelete(device.id);
+  };
+
+  const handleGetToken = (e) => {
+    e.stopPropagation();
+    onGetToken(device);
   };
 
   return (
@@ -40,6 +55,31 @@ const DeviceCard = ({ device, isSelected, onClick }) => {
             )}
           </div>
         </div>
+      </div>
+      
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-2 mt-3 pt-2 border-t border-gray-600">
+        <button
+          onClick={handleGetToken}
+          className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
+          title="Get Token"
+        >
+          <Key className="w-3 h-3" />
+        </button>
+        <button
+          onClick={handleEdit}
+          className="p-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs transition-colors"
+          title="Edit Device"
+        >
+          <Edit className="w-3 h-3" />
+        </button>
+        <button
+          onClick={handleDelete}
+          className="p-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
+          title="Delete Device"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
       </div>
     </div>
   );
