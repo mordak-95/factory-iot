@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const Header = ({ lastUpdate, serverIp, isDarkMode }) => {
+const Header = ({ serverIp, isDarkMode }) => {
   const [copied, setCopied] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   
+    // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, []);
+
   const formatPersianDateTime = (date) => {
     if (!date) return '';
     
@@ -96,18 +106,13 @@ const Header = ({ lastUpdate, serverIp, isDarkMode }) => {
         </div>
         
         <div className="flex items-center space-x-4">
-          {lastUpdate && (
-            <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 ${
-              isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
-            }`}>
-              <span className={`text-sm transition-colors duration-200 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>آخرین بروزرسانی:</span>
-              <span className={`font-medium text-sm transition-colors duration-200 ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>{formatPersianDateTime(lastUpdate)}</span>
-            </div>
-          )}
+          <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 ${
+            isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+          }`}>
+            <span className={`font-medium text-sm transition-colors duration-200 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`} dir="rtl">{formatPersianDateTime(currentTime)}</span>
+          </div>
           
           <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 ${
             isDarkMode ? 'bg-gray-700' : 'bg-gray-100'

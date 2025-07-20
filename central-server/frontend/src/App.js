@@ -170,8 +170,7 @@ function Dashboard() {
     
     try {
       const response = await fetch(`${backendUrl}/api/devices/${device.id}/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -180,10 +179,10 @@ function Dashboard() {
         setShowTokenModal(true);
       } else {
         const errorData = await response.json();
-        setFormError(errorData.error || 'Failed to generate token');
+        setFormError(errorData.error || 'Failed to get token');
       }
     } catch (err) {
-      setFormError('Failed to generate token');
+      setFormError('Failed to get token');
     } finally {
       setTokenLoading(false);
     }
@@ -462,7 +461,7 @@ function Dashboard() {
             {tokenLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                <p className="text-gray-400">Generating token...</p>
+                <p className="text-gray-400">Getting token...</p>
               </div>
             ) : deviceToken ? (
               <div>
@@ -482,7 +481,7 @@ function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-red-400">Failed to generate token</p>
+                <p className="text-red-400">Failed to get token</p>
                 {formError && <p className="text-red-400 text-sm mt-2">{formError}</p>}
               </div>
             )}
@@ -549,7 +548,7 @@ function App() {
         
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          <Header lastUpdate={lastUpdate} serverIp={serverIp} isDarkMode={isDarkMode} />
+          <Header serverIp={serverIp} isDarkMode={isDarkMode} />
           
           <div className="flex-1 overflow-hidden">
             <Routes>
