@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import DeviceCard from './components/DeviceCard';
 import RelayManager from './components/RelayManager';
+import MotionSensorManager from './components/MotionSensorManager';
 import LoadingSpinner from './components/LoadingSpinner';
 import HealthCheck from './HealthCheck';
 import { 
@@ -38,6 +39,7 @@ function Dashboard({ isDarkMode }) {
   const [form, setForm] = useState({ name: '', ip_address: '', description: '', is_active: true });
   const [editForm, setEditForm] = useState({ id: null, name: '', ip_address: '', description: '', is_active: true });
   const [formError, setFormError] = useState(null);
+  const [activeTab, setActiveTab] = useState('relays');
 
   const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
 
@@ -312,19 +314,70 @@ function Dashboard({ isDarkMode }) {
             </div>
           </div>
 
-          {/* Relay Management - Center */}
+          {/* Device Management - Center */}
           <div className="col-span-5">
             <div className={`border rounded-lg p-4 h-full transition-colors duration-200 ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-              <RelayManager 
-                selectedDevice={selectedDevice}
-                onRelayUpdate={() => {
-                  // Refresh devices to get updated relay counts
-                  fetchDevices(false);
-                }}
-                isDarkMode={isDarkMode}
-              />
+              {selectedDevice ? (
+                <>
+                  {/* Management Tabs */}
+                  <div className="flex space-x-1 mb-4">
+                    <button
+                      onClick={() => setActiveTab('relays')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === 'relays'
+                          ? isDarkMode 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-blue-500 text-white'
+                          : isDarkMode 
+                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Relays
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('motion')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === 'motion'
+                          ? isDarkMode 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-blue-500 text-white'
+                          : isDarkMode 
+                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Motion Sensors
+                    </button>
+                  </div>
+
+                  {/* Tab Content */}
+                  {activeTab === 'relays' && (
+                    <RelayManager 
+                      selectedDevice={selectedDevice}
+                      onRelayUpdate={() => {
+                        // Refresh devices to get updated relay counts
+                        fetchDevices(false);
+                      }}
+                      isDarkMode={isDarkMode}
+                    />
+                  )}
+                  
+                  {activeTab === 'motion' && (
+                    <MotionSensorManager 
+                      deviceId={selectedDevice.id}
+                      deviceName={selectedDevice.name}
+                      isDarkMode={isDarkMode}
+                    />
+                  )}
+                </>
+              ) : (
+                <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Select a device to manage its relays and motion sensors
+                </div>
+              )}
             </div>
           </div>
 

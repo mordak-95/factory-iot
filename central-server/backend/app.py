@@ -8,6 +8,8 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import sessionmaker
 import secrets
 import socket
+import datetime
+from models import MotionSensor, MotionLog
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -275,6 +277,148 @@ def update_relay_status_from_device(relay_id):
     session.commit()
     session.close()
     return jsonify({'message': 'Relay status updated'})
+
+# Motion Sensor Management APIs
+@app.route('/api/devices/<int:device_id>/motion_sensors', methods=['GET'])
+def list_device_motion_sensors(device_id):
+    session = Session()
+    device = session.query(Device).get(device_id)
+    if not device:
+        session.close()
+        return jsonify({'error': 'Device not found'}), 404
+    motion_sensors = session.query(MotionSensor).filter_by(device_id=device_id).all()
+    result = [
+        {
+            'id': ms.id,
+            'name': ms.name,
+            'gpio_pin': ms.gpio_pin,
+            'is_active': ms.is_active,
+            'last_motion_detected': ms.last_motion_detected.isoformat() if ms.last_motion_detected else None,
+            'motion_count': ms.motion_count,
+            'last_update': ms.last_update.isoformat() if ms.last_update else None
+        } for ms in motion_sensors
+    ]
+    session.close()
+    return jsonify(result)
+
+@app.route('/api/devices/<int:device_id>/motion_sensors', methods=['POST'])
+def create_motion_sensor(device_id):
+    data = request.get_json()
+    if not data or 'name' not in data or 'gpio_pin' not in data:
+        return jsonify({'error': 'Name and gpio_pin are required'}), 400
+    session = Session()
+    device = session.query(Device).get(device_id)
+    if not device:
+        session.close()
+        return jsonify({'error': 'Device not found'}), 404
+    motion_sensor = MotionSensor(
+        device_id=device_id,
+        name=data['name'],
+        gpio_pin=data['gpio_pin'],
+        is_active=data.get('is_active', True)
+    )
+    session.add(motion_sensor)
+    session.commit()
+    session.close()
+    return jsonify({'message': 'Motion sensor created', 'id': motion_sensor.id}), 201
+
+@app.route('/api/motion_sensors/<int:motion_sensor_id>', methods=['PUT'])
+def update_motion_sensor(motion_sensor_id):
+    data = request.get_json()
+    session = Session()
+    motion_sensor = session.query(MotionSensor).get(motion_sensor_id)
+    if not motion_sensor:
+        session.close()
+        return jsonify({'error': 'Motion sensor not found'}), 404
+    for field in ['name', 'gpio_pin', 'is_active']:
+        if field in data:
+            setattr(motion_sensor, field, data[field])
+    session.commit()
+    session.close()
+    return jsonify({'message': 'Motion sensor updated'})
+
+@app.route('/api/motion_sensors/<int:motion_sensor_id>', methods=['DELETE'])
+def delete_motion_sensor(motion_sensor_id):
+    session = Session()
+    motion_sensor = session.query(MotionSensor).get(motion_sensor_id)
+    if not motion_sensor:
+        session.close()
+        return jsonify({'error': 'Motion sensor not found'}), 404
+    session.delete(motion_sensor)
+    session.commit()
+    session.close()
+    return jsonify({'message': 'Motion sensor deleted'})
+
+# Endpoint: Get motion sensor config for a device
+@app.route('/api/devices/<int:device_id>/motion_sensors/config', methods=['GET'])
+def get_device_motion_sensor_config(device_id):
+    session = Session()
+    device = session.query(Device).get(device_id)
+    if not device:
+        session.close()
+        return jsonify({'error': 'Device not found'}), 404
+    motion_sensors = session.query(MotionSensor).filter_by(device_id=device_id, is_active=True).all()
+    result = [
+        {
+            'id': ms.id,
+            'name': ms.name,
+            'gpio_pin': ms.gpio_pin,
+            'is_active': ms.is_active
+        } for ms in motion_sensors
+    ]
+    session.close()
+    return jsonify({'motion_sensors': result})
+
+# Endpoint: Device reports motion detection
+@app.route('/api/motion_sensors/<int:motion_sensor_id>/motion', methods=['POST'])
+def report_motion_detection(motion_sensor_id):
+    token = request.headers.get('X-Device-Token') or request.json.get('token')
+    if not token:
+        return jsonify({'error': 'Device token required'}), 401
+    session = Session()
+    motion_sensor = session.query(MotionSensor).get(motion_sensor_id)
+    if not motion_sensor:
+        session.close()
+        return jsonify({'error': 'Motion sensor not found'}), 404
+    device = session.query(Device).get(motion_sensor.device_id)
+    if not device or device.token != token:
+        session.close()
+        return jsonify({'error': 'Unauthorized device'}), 403
+    # Update motion sensor status
+    motion_sensor.last_motion_detected = datetime.datetime.utcnow()
+    motion_sensor.motion_count += 1
+    motion_sensor.last_update = datetime.datetime.utcnow()
+    # Create motion log
+    motion_log = MotionLog(
+        motion_sensor_id=motion_sensor_id,
+        device_id=device.id,
+        motion_detected=datetime.datetime.utcnow()
+    )
+    session.add(motion_log)
+    session.commit()
+    session.close()
+    return jsonify({'message': 'Motion detected and logged'})
+
+# Endpoint: Get motion logs for a device
+@app.route('/api/devices/<int:device_id>/motion_logs', methods=['GET'])
+def get_device_motion_logs(device_id):
+    session = Session()
+    device = session.query(Device).get(device_id)
+    if not device:
+        session.close()
+        return jsonify({'error': 'Device not found'}), 404
+    motion_logs = session.query(MotionLog).filter_by(device_id=device_id).order_by(MotionLog.motion_detected.desc()).limit(100).all()
+    result = [
+        {
+            'id': ml.id,
+            'motion_sensor_id': ml.motion_sensor_id,
+            'motion_detected': ml.motion_detected.isoformat(),
+            'is_alert_sent': ml.is_alert_sent,
+            'alert_sent_at': ml.alert_sent_at.isoformat() if ml.alert_sent_at else None
+        } for ml in motion_logs
+    ]
+    session.close()
+    return jsonify(result)
 
 def get_lan_ip():
     try:

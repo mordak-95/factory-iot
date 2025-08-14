@@ -24,6 +24,7 @@ DEVICE_ID = os.getenv('DEVICE_ID')
 DEVICE_TOKEN = os.getenv('DEVICE_TOKEN')
 CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://localhost:5000')
 RELAY_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'relay_config.json')
+MOTION_SENSOR_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'motion_sensor_config.json')
 SYNC_INTERVAL = 5
 
 # Load configuration
@@ -75,11 +76,16 @@ iot_devices = {
 }
 
 try:
-    from gpiozero import OutputDevice
+    from gpiozero import OutputDevice, MotionSensor
     RELAY_ENABLED = True
+    MOTION_SENSOR_ENABLED = True
+    OutputDevice = OutputDevice
+    MotionSensor = MotionSensor
 except ImportError:
     RELAY_ENABLED = False
+    MOTION_SENSOR_ENABLED = False
     OutputDevice = None
+    MotionSensor = None
 
 # Relay management
 relay_objs = {}
@@ -139,14 +145,133 @@ def update_central_status(relay_id, status):
     except Exception as e:
         print(f"[backend] Exception updating relay status: {e}")
 
-def periodic_sync():
+# Motion sensor management
+motion_sensor_objs = {}
+motion_sensor_defs = []
+motion_detection_callbacks = []
+
+def load_motion_sensor_config():
+    global motion_sensor_defs, motion_sensor_objs
+    try:
+        with open(MOTION_SENSOR_CONFIG_PATH, 'r') as f:
+            motion_sensor_defs = json.load(f)
+    except Exception:
+        motion_sensor_defs = []
+    
+    # (Re)initialize motion sensor objects
+    if MOTION_SENSOR_ENABLED:
+        motion_sensor_objs = {}
+        motion_detection_callbacks.clear()
+        
+        for ms in motion_sensor_defs:
+            if ms.get('is_active', True):
+                try:
+                    motion_sensor = MotionSensor(ms['gpio_pin'])
+                    motion_sensor_objs[str(ms['id'])] = motion_sensor
+                    
+                    # Set up motion detection callback
+                    def create_callback(sensor_id):
+                        def callback():
+                            handle_motion_detection(sensor_id)
+                        return callback
+                    
+                    motion_sensor.when_motion = create_callback(ms['id'])
+                    motion_detection_callbacks.append(motion_sensor)
+                    
+                except Exception as e:
+                    print(f"Failed to initialize motion sensor {ms['id']} on GPIO {ms['gpio_pin']}: {e}")
+
+def handle_motion_detection(sensor_id):
+    """Handle motion detection from GPIO sensor"""
+    try:
+        print(f"Motion detected on sensor {sensor_id}")
+        
+        # Find sensor config
+        sensor_config = next((s for s in motion_sensor_defs if s['id'] == sensor_id), None)
+        if not sensor_config:
+            print(f"Sensor config not found for sensor {sensor_id}")
+            return
+        
+        # Report to central server
+        report_motion_to_central_server(sensor_id)
+        
+    except Exception as e:
+        print(f"Error handling motion detection: {e}")
+
+def report_motion_to_central_server(sensor_id):
+    """Report motion detection to central server"""
+    try:
+        url = f"{CENTRAL_SERVER_URL}/api/motion_sensors/{sensor_id}/motion"
+        headers = {
+            'Content-Type': 'application/json',
+            'X-Device-Token': DEVICE_TOKEN
+        }
+        
+        response = requests.post(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            print(f"Motion reported to central server for sensor {sensor_id}")
+        else:
+            print(f"Failed to report motion to central server: {response.status_code}")
+            
+    except Exception as e:
+        print(f"Error reporting motion to central server: {e}")
+
+# Load configurations on startup
+load_relay_config()
+load_motion_sensor_config()
+
+# Background sync thread
+def sync_with_central_server():
+    """Background thread to sync with central server"""
     while True:
-        sync_relay_config()
+        try:
+            # Sync relay config
+            if RELAY_ENABLED:
+                sync_relay_config()
+            
+            # Sync motion sensor config
+            if MOTION_SENSOR_ENABLED:
+                sync_motion_sensor_config()
+                
+        except Exception as e:
+            print(f"Error in sync thread: {e}")
+        
         time.sleep(SYNC_INTERVAL)
 
-# Start periodic sync in background
-Thread(target=periodic_sync, daemon=True).start()
-load_relay_config()
+def sync_motion_sensor_config():
+    """Sync motion sensor configuration with central server"""
+    try:
+        url = f"{CENTRAL_SERVER_URL}/api/devices/{DEVICE_ID}/motion_sensors/config"
+        headers = {'X-Device-Token': DEVICE_TOKEN}
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            new_motion_sensor_defs = data.get('motion_sensors', [])
+            
+            # Check if config changed
+            if new_motion_sensor_defs != motion_sensor_defs:
+                print("Motion sensor config changed, updating...")
+                global motion_sensor_defs
+                motion_sensor_defs = new_motion_sensor_defs
+                
+                # Save to file
+                with open(MOTION_SENSOR_CONFIG_PATH, 'w') as f:
+                    json.dump(motion_sensor_defs, f, indent=2)
+                
+                # Reload motion sensor objects
+                load_motion_sensor_config()
+                
+    except Exception as e:
+        print(f"Error syncing motion sensor config: {e}")
+
+# Start background sync thread
+if DEVICE_ID and DEVICE_TOKEN:
+    sync_thread = Thread(target=sync_with_central_server, daemon=True)
+    sync_thread.start()
+    print(f"Started sync thread for device {DEVICE_ID}")
+else:
+    print("Warning: DEVICE_ID or DEVICE_TOKEN not set, sync disabled")
 
 # تعریف پین‌های رله (BCM)
 # RELAY_PINS = {
@@ -329,6 +454,72 @@ def control_relay(relay_id):
         return jsonify({"status": f"{relay_id} turned off"}), 200
     else:
         return jsonify({"error": "Invalid action, use 'on' or 'off'"}), 400
+
+# Motion Sensor APIs
+@app.route('/api/motion_sensors', methods=['GET'])
+def get_motion_sensors():
+    """Get list of motion sensors and their current status"""
+    if not MOTION_SENSOR_ENABLED:
+        return jsonify({"error": "Motion sensor control not available on this system."}), 501
+    
+    sensors_status = []
+    for ms in motion_sensor_defs:
+        sensor_obj = motion_sensor_objs.get(str(ms['id']))
+        sensors_status.append({
+            'id': ms['id'],
+            'name': ms['name'],
+            'gpio_pin': ms['gpio_pin'],
+            'is_active': ms.get('is_active', True),
+            'status': 'active' if sensor_obj else 'inactive'
+        })
+    
+    return jsonify({"motion_sensors": sensors_status})
+
+@app.route('/api/motion_sensors/<sensor_id>/status', methods=['GET'])
+def get_motion_sensor_status(sensor_id):
+    """Get status of a specific motion sensor"""
+    if not MOTION_SENSOR_ENABLED:
+        return jsonify({"error": "Motion sensor control not available on this system."}), 501
+    
+    sensor_def = next((ms for ms in motion_sensor_defs if str(ms['id']) == str(sensor_id)), None)
+    if not sensor_def:
+        return jsonify({"error": "Motion sensor not found"}), 404
+    
+    sensor_obj = motion_sensor_objs.get(str(sensor_id))
+    return jsonify({
+        'id': sensor_def['id'],
+        'name': sensor_def['name'],
+        'gpio_pin': sensor_def['gpio_pin'],
+        'is_active': sensor_def.get('is_active', True),
+        'status': 'active' if sensor_obj else 'inactive'
+    })
+
+@app.route('/api/motion_sensors/<sensor_id>/test', methods=['POST'])
+def test_motion_sensor(sensor_id):
+    """Test motion sensor by simulating motion detection"""
+    if not MOTION_SENSOR_ENABLED:
+        return jsonify({"error": "Motion sensor control not available on this system."}), 501
+    
+    sensor_def = next((ms for ms in motion_sensor_defs if str(ms['id']) == str(sensor_id)), None)
+    if not sensor_def:
+        return jsonify({"error": "Motion sensor not found"}), 404
+    
+    # Simulate motion detection
+    handle_motion_detection(sensor_id)
+    
+    return jsonify({
+        "message": f"Motion sensor {sensor_id} test triggered",
+        "sensor": sensor_def['name']
+    })
+
+@app.route('/api/motion_sensors/config', methods=['GET'])
+def get_motion_sensor_config():
+    """Get current motion sensor configuration"""
+    return jsonify({
+        "motion_sensors": motion_sensor_defs,
+        "enabled": MOTION_SENSOR_ENABLED,
+        "count": len(motion_sensor_defs)
+    })
 
 @app.errorhandler(404)
 def not_found(error):

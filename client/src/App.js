@@ -6,6 +6,7 @@ import DeviceCard from './components/DeviceCard';
 import SystemStats from './components/SystemStats';
 import LoadingSpinner from './components/LoadingSpinner';
 import ConnectionStatus from './components/ConnectionStatus';
+import MotionSensorStatus from './components/MotionSensorStatus';
 import { 
   Search, 
   Plus, 
@@ -307,6 +308,11 @@ function App() {
                           <Smartphone className="w-4 h-4 text-yellow-400" />
                         </div>
                       </div>
+                    </div>
+                    
+                    {/* Motion Sensor Status */}
+                    <div className="bg-gray-700/50 rounded-lg p-3">
+                      <MotionSensorStatus isDarkMode={isDarkMode} />
                     </div>
                   </div>
                 </div>
