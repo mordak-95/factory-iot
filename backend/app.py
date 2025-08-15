@@ -8,12 +8,24 @@ import os
 import json
 import psutil
 import time
+import logging
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from threading import Thread
 import requests
 from dotenv import load_dotenv
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('motion_sensor.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('motion_sensor')
 
 app = Flask(__name__)
 CORS(app)
@@ -81,11 +93,13 @@ try:
     MOTION_SENSOR_ENABLED = True
     OutputDevice = OutputDevice
     MotionSensor = MotionSensor
-except ImportError:
+    logger.info("GPIO libraries imported successfully")
+except ImportError as e:
     RELAY_ENABLED = False
     MOTION_SENSOR_ENABLED = False
     OutputDevice = None
     MotionSensor = None
+    logger.error(f"Failed to import GPIO libraries: {e}")
 
 # Relay management
 relay_objs = {}
@@ -102,23 +116,31 @@ def load_relay_config():
     try:
         with open(RELAY_CONFIG_PATH, 'r') as f:
             relay_defs = json.load(f)
-    except Exception:
+        logger.info(f"Relay config loaded: {len(relay_defs)} relays")
+    except Exception as e:
         relay_defs = []
+        logger.error(f"Failed to load relay config: {e}")
+    
     # (Re)initialize relay objects
     if RELAY_ENABLED:
         relay_objs = {}
         for r in relay_defs:
-            relay_objs[str(r['id'])] = OutputDevice(r['gpio_pin'])
-            # Sync relay state with status
-            if r.get('status'):
-                relay_objs[str(r['id'])].on()
-            else:
-                relay_objs[str(r['id'])].off()
+            try:
+                relay_objs[str(r['id'])] = OutputDevice(r['gpio_pin'])
+                # Sync relay state with status
+                if r.get('status'):
+                    relay_objs[str(r['id'])].on()
+                    logger.info(f"Relay {r['id']} initialized on GPIO {r['gpio_pin']} - ON")
+                else:
+                    relay_objs[str(r['id'])].off()
+                    logger.info(f"Relay {r['id']} initialized on GPIO {r['gpio_pin']} - OFF")
+            except Exception as e:
+                logger.error(f"Failed to initialize relay {r['id']} on GPIO {r['gpio_pin']}: {e}")
     print(f"[backend] Loaded relay config: {relay_defs}")
 
 def sync_relay_config():
     if not DEVICE_ID or not DEVICE_TOKEN:
-        print('[backend] DEVICE_ID and DEVICE_TOKEN not set, skipping sync.')
+        logger.warning('DEVICE_ID and DEVICE_TOKEN not set, skipping relay sync.')
         return
     url = f"{CENTRAL_SERVER_URL}/api/devices/{DEVICE_ID}/relays/config"
     headers = {'X-Device-Token': DEVICE_TOKEN}
@@ -128,16 +150,19 @@ def sync_relay_config():
             data = resp.json()
             with open(RELAY_CONFIG_PATH, 'w') as f:
                 json.dump(data['relays'], f, indent=2)
+            logger.info(f"Relay config synced from central server: {len(data.get('relays', []))} relays")
             print(f"[backend] Synced relay config from central server.")
             load_relay_config()
         else:
+            logger.error(f"Failed to sync relay config: {resp.status_code} {resp.text}")
             print(f"[backend] Failed to sync relay config: {resp.status_code} {resp.text}")
     except Exception as e:
+        logger.error(f"Exception syncing relay config: {e}")
         print(f"[backend] Exception syncing relay config: {e}")
 
 def update_central_status(relay_id, status):
     if not DEVICE_ID or not DEVICE_TOKEN:
-        print('[backend] DEVICE_ID and DEVICE_TOKEN not set, cannot update central.')
+        logger.warning('DEVICE_ID and DEVICE_TOKEN not set, cannot update central.')
         return
     url = f"{CENTRAL_SERVER_URL}/api/relays/{relay_id}/status"
     headers = {'Content-Type': 'application/json', 'X-Device-Token': DEVICE_TOKEN}
@@ -145,10 +170,13 @@ def update_central_status(relay_id, status):
     try:
         resp = requests.put(url, headers=headers, json=data, timeout=10)
         if resp.status_code == 200:
+            logger.info(f"Relay {relay_id} status updated to {status} in central server")
             print(f"[backend] Updated relay {relay_id} status to {status} in central server.")
         else:
+            logger.error(f"Failed to update relay {relay_id} status: {resp.status_code}")
             print(f"[backend] Failed to update relay {relay_id} status: {resp.status_code} {resp.text}")
     except Exception as e:
+        logger.error(f"Exception updating relay status: {e}")
         print(f"[backend] Exception updating relay status: {e}")
 
 # Motion sensor management
@@ -161,8 +189,10 @@ def load_motion_sensor_config():
     try:
         with open(MOTION_SENSOR_CONFIG_PATH, 'r') as f:
             motion_sensor_defs = json.load(f)
+            logger.info(f"Motion sensor config loaded: {len(motion_sensor_defs)} sensors")
             print(f"[DEBUG] Loaded motion sensor config: {motion_sensor_defs}")
     except Exception as e:
+        logger.error(f"Failed to load motion sensor config: {e}")
         print(f"[DEBUG] Failed to load motion sensor config: {e}")
         motion_sensor_defs = []
     
@@ -171,29 +201,40 @@ def load_motion_sensor_config():
         motion_sensor_objs = {}
         motion_detection_callbacks.clear()
         
+        logger.info(f"Initializing {len(motion_sensor_defs)} motion sensors...")
         print(f"[DEBUG] Initializing {len(motion_sensor_defs)} motion sensors...")
         
         for ms in motion_sensor_defs:
             if ms.get('is_active', True):
                 try:
+                    logger.info(f"Setting up motion sensor {ms['id']} on GPIO {ms['gpio_pin']}")
                     print(f"[DEBUG] Setting up motion sensor {ms['id']} on GPIO {ms['gpio_pin']}")
+                    
                     motion_sensor = MotionSensor(ms['gpio_pin'])
                     motion_sensor_objs[str(ms['id'])] = motion_sensor
                     
                     # Set up motion detection callback
                     def create_callback(sensor_id):
                         def callback():
+                            logger.info(f"Motion callback triggered for sensor {sensor_id}")
                             print(f"[DEBUG] Motion callback triggered for sensor {sensor_id}")
                             handle_motion_detection(sensor_id)
                         return callback
                     
                     motion_sensor.when_motion = create_callback(ms['id'])
                     motion_detection_callbacks.append(motion_sensor)
+                    
+                    logger.info(f"Motion sensor {ms['id']} initialized successfully on GPIO {ms['gpio_pin']}")
                     print(f"[DEBUG] Motion sensor {ms['id']} callback set successfully")
                     
                 except Exception as e:
-                    print(f"Failed to initialize motion sensor {ms['id']} on GPIO {ms['gpio_pin']}: {e}")
+                    error_msg = f"Failed to initialize motion sensor {ms['id']} on GPIO {ms['gpio_pin']}: {e}"
+                    logger.error(error_msg)
+                    print(error_msg)
+            else:
+                logger.info(f"Motion sensor {ms['id']} is disabled, skipping initialization")
     else:
+        logger.warning("Motion sensor control not enabled")
         print("[DEBUG] Motion sensor control not enabled")
 
 def is_motion_detection_allowed(sensor_config):
@@ -234,49 +275,71 @@ def is_motion_detection_allowed(sensor_config):
 def handle_motion_detection(sensor_id):
     """Handle motion detection from GPIO sensor with time scheduling"""
     try:
+        timestamp = datetime.now()
+        logger.info(f"🎯 MOTION DETECTED on sensor {sensor_id} at {timestamp}")
         print(f"Motion detected on sensor {sensor_id}")
         
         # Find sensor config
         sensor_config = next((s for s in motion_sensor_defs if s['id'] == sensor_id), None)
         if not sensor_config:
+            logger.error(f"Sensor config not found for sensor {sensor_id}")
             print(f"Sensor config not found for sensor {sensor_id}")
             return
+        
+        # Log detailed sensor information
+        logger.info(f"📊 Sensor Details - ID: {sensor_id}, Name: {sensor_config.get('name')}, GPIO: {sensor_config.get('gpio_pin')}")
+        logger.info(f"⏰ Detection Time: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"🔧 Sensor Config: Active={sensor_config.get('is_active')}, Scheduling={sensor_config.get('enable_scheduling')}")
+        
+        if sensor_config.get('enable_scheduling'):
+            start_time = sensor_config.get('start_time')
+            end_time = sensor_config.get('end_time')
+            logger.info(f"⏰ Schedule: {start_time} - {end_time}")
+            logger.info(f"📅 Monitoring: Weekday={sensor_config.get('weekday_monitoring')}, Weekend={sensor_config.get('weekend_monitoring')}")
         
         # Always send alert to frontend regardless of scheduling
         send_motion_alert_to_frontend(sensor_id, sensor_config)
         
         # Check if motion detection is allowed based on scheduling for central server reporting
         if not is_motion_detection_allowed(sensor_config):
+            logger.info(f"🚫 Motion detection not allowed for sensor {sensor_id} at current time (no central server report)")
             print(f"Motion detection not allowed for sensor {sensor_id} at current time (no central server report)")
             return
         
+        logger.info(f"✅ Motion detection allowed for sensor {sensor_id}, reporting to central server")
         print(f"Motion detection allowed for sensor {sensor_id}, reporting to central server")
         
         # Report to central server
         report_motion_to_central_server(sensor_id)
         
     except Exception as e:
+        logger.error(f"❌ Error handling motion detection: {e}")
         print(f"Error handling motion detection: {e}")
 
 def send_motion_alert_to_frontend(sensor_id, sensor_config):
     """Send motion alert to frontend via WebSocket or HTTP endpoint"""
     try:
         # Store motion alert in memory for frontend to fetch
-        motion_alerts.append({
+        alert = {
             'id': len(motion_alerts) + 1,
             'sensor_id': sensor_id,
             'sensor_name': sensor_config.get('name', f'Sensor {sensor_id}'),
             'timestamp': datetime.now().isoformat(),
             'message': f'Motion detected on {sensor_config.get("name", f"Sensor {sensor_id}")}'
-        })
+        }
+        
+        motion_alerts.append(alert)
         
         # Keep only last 100 alerts
         if len(motion_alerts) > 100:
-            motion_alerts.pop(0)
+            removed_alert = motion_alerts.pop(0)
+            logger.debug(f"Removed old alert: {removed_alert['id']}")
             
+        logger.info(f"📱 Motion alert sent to frontend for sensor {sensor_id} - Alert ID: {alert['id']}")
         print(f"Motion alert sent to frontend for sensor {sensor_id}")
         
     except Exception as e:
+        logger.error(f"❌ Error sending motion alert to frontend: {e}")
         print(f"Error sending motion alert to frontend: {e}")
 
 def report_motion_to_central_server(sensor_id):
@@ -288,13 +351,18 @@ def report_motion_to_central_server(sensor_id):
             'X-Device-Token': DEVICE_TOKEN
         }
         
+        logger.info(f"🌐 Reporting motion to central server: {url}")
+        
         response = requests.post(url, headers=headers, timeout=10)
         if response.status_code == 200:
+            logger.info(f"✅ Motion reported to central server for sensor {sensor_id}")
             print(f"Motion reported to central server for sensor {sensor_id}")
         else:
+            logger.error(f"❌ Failed to report motion to central server: {response.status_code} - {response.text}")
             print(f"Failed to report motion to central server: {response.status_code}")
             
     except Exception as e:
+        logger.error(f"❌ Error reporting motion to central server: {e}")
         print(f"Error reporting motion to central server: {e}")
 
 # Load configurations on startup
@@ -315,6 +383,7 @@ def sync_with_central_server():
                 sync_motion_sensor_config()
                 
         except Exception as e:
+            logger.error(f"Error in sync thread: {e}")
             print(f"Error in sync thread: {e}")
         
         time.sleep(SYNC_INTERVAL)
@@ -333,7 +402,10 @@ def sync_motion_sensor_config():
             
             # Check if config changed
             if new_motion_sensor_defs != motion_sensor_defs:
-                print("Motion sensor config changed, updating...")
+                logger.info(f"🔄 Motion sensor config changed, updating...")
+                logger.info(f"Old config: {len(motion_sensor_defs)} sensors")
+                logger.info(f"New config: {len(new_motion_sensor_defs)} sensors")
+                
                 motion_sensor_defs = new_motion_sensor_defs
                 
                 # Save to file
@@ -343,15 +415,20 @@ def sync_motion_sensor_config():
                 # Reload motion sensor objects
                 load_motion_sensor_config()
                 
+        else:
+            logger.warning(f"Failed to sync motion sensor config: {response.status_code}")
+            
     except Exception as e:
-        print(f"Error syncing motion sensor config: {e}")
+        logger.error(f"Error syncing motion sensor config: {e}")
 
 # Start background sync thread
 if DEVICE_ID and DEVICE_TOKEN:
     sync_thread = Thread(target=sync_with_central_server, daemon=True)
     sync_thread.start()
+    logger.info(f"🔄 Started sync thread for device {DEVICE_ID}")
     print(f"Started sync thread for device {DEVICE_ID}")
 else:
+    logger.warning("Warning: DEVICE_ID or DEVICE_TOKEN not set, sync disabled")
     print("Warning: DEVICE_ID or DEVICE_TOKEN not set, sync disabled")
 
 # تعریف پین‌های رله (BCM)
@@ -647,7 +724,53 @@ def clear_motion_alerts():
     """Clear all motion alerts"""
     global motion_alerts
     motion_alerts.clear()
+    logger.info("All motion alerts cleared")
     return jsonify({"message": "All motion alerts cleared"})
+
+@app.route('/api/motion_sensors/logs', methods=['GET'])
+def get_motion_sensor_logs():
+    """Get recent motion sensor logs from the log file"""
+    try:
+        log_file = 'motion_sensor.log'
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as f:
+                lines = f.readlines()
+                # Return last 100 lines
+                recent_logs = lines[-100:] if len(lines) > 100 else lines
+                return jsonify({
+                    "logs": recent_logs,
+                    "total_lines": len(lines),
+                    "recent_lines": len(recent_logs)
+                })
+        else:
+            return jsonify({"error": "Log file not found"}), 404
+    except Exception as e:
+        logger.error(f"Error reading log file: {e}")
+        return jsonify({"error": f"Error reading logs: {e}"}), 500
+
+@app.route('/api/motion_sensors/<sensor_id>/logs', methods=['GET'])
+def get_sensor_specific_logs(sensor_id):
+    """Get logs for a specific motion sensor"""
+    try:
+        log_file = 'motion_sensor.log'
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as f:
+                lines = f.readlines()
+                # Filter logs for specific sensor
+                sensor_logs = [line for line in lines if f"sensor {sensor_id}" in line.lower()]
+                # Return last 50 lines for this sensor
+                recent_sensor_logs = sensor_logs[-50:] if len(sensor_logs) > 50 else sensor_logs
+                return jsonify({
+                    "sensor_id": sensor_id,
+                    "logs": recent_sensor_logs,
+                    "total_lines": len(sensor_logs),
+                    "recent_lines": len(recent_sensor_logs)
+                })
+        else:
+            return jsonify({"error": "Log file not found"}), 404
+    except Exception as e:
+        logger.error(f"Error reading sensor logs: {e}")
+        return jsonify({"error": f"Error reading sensor logs: {e}"}), 500
 
 @app.errorhandler(404)
 def not_found(error):
@@ -661,6 +784,11 @@ if __name__ == '__main__':
     port = config.get('backend', {}).get('port', 5000)
     host = config.get('backend', {}).get('host', '0.0.0.0')
     debug = config.get('backend', {}).get('debug', False)
+    
+    logger.info(f"🚀 Starting Factory IoT Backend on {host}:{port}")
+    logger.info(f"📡 Device ID: {DEVICE_ID}")
+    logger.info(f"🔑 Motion Sensor Enabled: {MOTION_SENSOR_ENABLED}")
+    logger.info(f"⚡ Relay Control Enabled: {RELAY_ENABLED}")
     
     print(f"Starting Factory IoT Backend on {host}:{port}")
     app.run(host=host, port=port, debug=debug) 
