@@ -240,6 +240,7 @@ def sync_with_central_server():
 
 def sync_motion_sensor_config():
     """Sync motion sensor configuration with central server"""
+    global motion_sensor_defs
     try:
         url = f"{CENTRAL_SERVER_URL}/api/devices/{DEVICE_ID}/motion_sensors/config"
         headers = {'X-Device-Token': DEVICE_TOKEN}
@@ -252,7 +253,6 @@ def sync_motion_sensor_config():
             # Check if config changed
             if new_motion_sensor_defs != motion_sensor_defs:
                 print("Motion sensor config changed, updating...")
-                global motion_sensor_defs
                 motion_sensor_defs = new_motion_sensor_defs
                 
                 # Save to file
