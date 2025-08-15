@@ -21,9 +21,11 @@ const RelayManager = ({ selectedDevice, onRelayUpdate, isDarkMode }) => {
     
     setLoading(true);
     try {
-      const response = await fetch(`${backendUrl}/api/devices/${selectedDevice.id}/relays`);
+      const response = await fetch(`${backendUrl}/api/relays`);
       const data = await response.json();
-      setRelays(data);
+      // Filter relays for this specific device
+      const deviceRelays = data.relays.filter(relay => relay.device_id === selectedDevice.id);
+      setRelays(deviceRelays);
       setError(null);
     } catch (err) {
       setError('Failed to fetch relays');

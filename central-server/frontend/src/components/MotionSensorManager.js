@@ -29,10 +29,12 @@ const MotionSensorManager = ({ deviceId, onUpdate }) => {
   const fetchMotionSensors = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/devices/${deviceId}/motion_sensors`);
+      const response = await fetch(`/api/motion_sensors`);
       if (response.ok) {
         const data = await response.json();
-        setMotionSensors(data);
+        // Filter motion sensors for this specific device
+        const deviceSensors = data.motion_sensors.filter(sensor => sensor.device_id === deviceId);
+        setMotionSensors(deviceSensors);
       } else {
         setError('Failed to fetch motion sensors');
       }

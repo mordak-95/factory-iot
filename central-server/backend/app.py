@@ -168,6 +168,23 @@ def delete_device(device_id):
     return jsonify({'message': 'Device deleted'})
 
 # Relay CRUD (per device)
+@app.route('/api/relays', methods=['GET'])
+def list_all_relays():
+    session = Session()
+    relays = session.query(Relay).all()
+    result = [
+        {
+            'id': r.id,
+            'device_id': r.device_id,
+            'name': r.name,
+            'gpio_pin': r.gpio_pin,
+            'status': r.status,
+            'last_update': r.last_update.isoformat() if r.last_update else None
+        } for r in relays
+    ]
+    session.close()
+    return jsonify({'relays': result})
+
 @app.route('/api/devices/<int:device_id>/relays', methods=['GET'])
 def list_relays(device_id):
     session = Session()
@@ -279,6 +296,34 @@ def update_relay_status_from_device(relay_id):
     return jsonify({'message': 'Relay status updated'})
 
 # Motion Sensor Management APIs
+@app.route('/api/motion_sensors', methods=['GET'])
+def list_all_motion_sensors():
+    session = Session()
+    motion_sensors = session.query(MotionSensor).all()
+    result = [
+        {
+            'id': ms.id,
+            'name': ms.name,
+            'gpio_pin': ms.gpio_pin,
+            'is_active': ms.is_active,
+            'last_motion_detected': ms.last_motion_detected.isoformat() if ms.last_motion_detected else None,
+            'motion_count': ms.motion_count,
+            'last_update': ms.last_update.isoformat() if ms.last_update else None,
+            'device_id': ms.device_id,
+            'start_time': ms.start_time.strftime('%H:%M') if ms.start_time else None,
+            'end_time': ms.end_time.strftime('%H:%M') if ms.end_time else None,
+            'timezone': ms.timezone,
+            'enable_scheduling': ms.enable_scheduling,
+            'weekend_monitoring': ms.weekend_monitoring,
+            'weekday_monitoring': ms.weekday_monitoring,
+            'sensitivity': ms.sensitivity,
+            'delay_time': ms.delay_time,
+            'trigger_mode': ms.trigger_mode
+        } for ms in motion_sensors
+    ]
+    session.close()
+    return jsonify({'motion_sensors': result})
+
 @app.route('/api/devices/<int:device_id>/motion_sensors', methods=['GET'])
 def list_device_motion_sensors(device_id):
     session = Session()

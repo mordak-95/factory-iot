@@ -1,7 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Server, Wifi, WifiOff, Edit, Trash2, Key } from 'lucide-react';
 
 const DeviceCard = ({ device, isSelected, onClick, onEdit, onDelete, onGetToken, isDarkMode }) => {
+  const [relayCount, setRelayCount] = useState(0);
+  const [motionSensorCount, setMotionSensorCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
+
+  useEffect(() => {
+    fetchDeviceStats();
+  }, [device.id]);
+
+  const fetchDeviceStats = async () => {
+    setLoading(true);
+    try {
+      // Fetch relays count
+      const relaysResponse = await fetch(`${backendUrl}/api/relays`);
+      if (relaysResponse.ok) {
+        const relaysData = await relaysResponse.json();
+        const deviceRelays = relaysData.relays.filter(r => r.device_id === device.id);
+        setRelayCount(deviceRelays.length);
+      }
+
+      // Fetch motion sensors count
+      const sensorsResponse = await fetch(`${backendUrl}/api/motion_sensors`);
+      if (sensorsResponse.ok) {
+        const sensorsData = await sensorsResponse.json();
+        const deviceSensors = sensorsData.motion_sensors.filter(s => s.device_id === device.id);
+        setMotionSensorCount(deviceSensors.length);
+      }
+    } catch (err) {
+      console.error('Error fetching device stats:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
   const getStatusColor = (isActive) => {
     return isActive ? 'bg-green-500' : 'bg-red-500';
   };
@@ -55,6 +89,20 @@ const DeviceCard = ({ device, isSelected, onClick, onEdit, onDelete, onGetToken,
             <p className={`text-xs ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>IP: {device.ip_address}</p>
+          )}
+          {!loading && (
+            <div className="flex space-x-2 mt-1">
+              <span className={`text-xs px-2 py-1 rounded ${
+                isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'
+              }`}>
+                {relayCount} Relays
+              </span>
+              <span className={`text-xs px-2 py-1 rounded ${
+                isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-700'
+              }`}>
+                {motionSensorCount} Sensors
+              </span>
+            </div>
           )}
         </div>
         <div className="flex flex-col items-end space-y-1">
