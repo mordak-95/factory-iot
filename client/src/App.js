@@ -1,25 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-import DeviceCard from './components/DeviceCard';
+
 import SystemStats from './components/SystemStats';
 import LoadingSpinner from './components/LoadingSpinner';
 import ConnectionStatus from './components/ConnectionStatus';
 import MotionSensorStatus from './components/MotionSensorStatus';
 import { 
-  Search, 
-  Plus, 
-  List, 
-  Zap, 
-  Settings, 
-  User, 
-  Sun,
-  Moon,
   Monitor,
   Smartphone,
   Laptop,
-  Headphones
+  Activity
 } from 'lucide-react';
 
 function App() {
@@ -28,9 +20,9 @@ function App() {
   const [error, setError] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [relays, setRelays] = useState({});
-  const [relayError, setRelayError] = useState(null);
+
   const [motionSensors, setMotionSensors] = useState([]);
-  const [motionSensorError, setMotionSensorError] = useState(null);
+
   const [isConnected, setIsConnected] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [selectedRelay, setSelectedRelay] = useState(null);
@@ -38,7 +30,7 @@ function App() {
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-  const fetchData = async (isInitial = false) => {
+  const fetchData = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) {
         setInitialLoading(true);
@@ -60,36 +52,34 @@ function App() {
         setInitialLoading(false);
       }
     }
-  };
+  }, [API_BASE_URL]);
 
-  const fetchRelays = async () => {
+  const fetchRelays = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/relays`);
       setRelays(res.data.relays);
-      setRelayError(null);
     } catch (err) {
-      setRelayError('Failed to fetch relays');
+      console.error('Failed to fetch relays:', err);
     }
-  };
+  }, [API_BASE_URL]);
 
-  const fetchMotionSensors = async () => {
+  const fetchMotionSensors = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/motion_sensors`);
       setMotionSensors(res.data.motion_sensors || []);
-      setMotionSensorError(null);
     } catch (err) {
-      setMotionSensorError('Failed to fetch motion sensors');
+      console.error('Failed to fetch motion sensors:', err);
     }
-  };
+  }, [API_BASE_URL]);
 
-  const controlRelay = async (relayId, action) => {
+  const controlRelay = useCallback(async (relayId, action) => {
     try {
       await axios.post(`${API_BASE_URL}/api/relays/${relayId}`, { action });
       fetchRelays();
     } catch (err) {
-      setRelayError(`Failed to ${action} ${relayId}`);
+      console.error(`Failed to ${action} ${relayId}:`, err);
     }
-  };
+  }, [API_BASE_URL, fetchRelays]);
 
   useEffect(() => {
     // Initial load with loading
@@ -105,7 +95,7 @@ function App() {
     }, 5000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData, fetchRelays, fetchMotionSensors]);
 
   if (initialLoading) {
     return (
