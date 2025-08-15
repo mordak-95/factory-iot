@@ -91,6 +91,12 @@ except ImportError:
 relay_objs = {}
 relay_defs = []
 
+# Motion sensor management
+motion_sensor_objs = {}
+motion_sensor_defs = []
+motion_detection_callbacks = []
+motion_alerts = []  # Store motion alerts for frontend
+
 def load_relay_config():
     global relay_defs, relay_objs
     try:
@@ -222,14 +228,17 @@ def handle_motion_detection(sensor_id):
         print(f"Motion detected on sensor {sensor_id}")
         
         # Find sensor config
-        sensor_config = next((s for s in motion_sensor_defs if s['id'] == sensor_id), None)
+        sensor_config = next((s for s in motion_sensor_defs if s['id'] == sensor_config if s['id'] == sensor_id), None)
         if not sensor_config:
             print(f"Sensor config not found for sensor {sensor_id}")
             return
         
-        # Check if motion detection is allowed based on scheduling
+        # Always send alert to frontend regardless of scheduling
+        send_motion_alert_to_frontend(sensor_id, sensor_config)
+        
+        # Check if motion detection is allowed based on scheduling for central server reporting
         if not is_motion_detection_allowed(sensor_config):
-            print(f"Motion detection not allowed for sensor {sensor_id} at current time")
+            print(f"Motion detection not allowed for sensor {sensor_id} at current time (no central server report)")
             return
         
         print(f"Motion detection allowed for sensor {sensor_id}, reporting to central server")
@@ -239,6 +248,27 @@ def handle_motion_detection(sensor_id):
         
     except Exception as e:
         print(f"Error handling motion detection: {e}")
+
+def send_motion_alert_to_frontend(sensor_id, sensor_config):
+    """Send motion alert to frontend via WebSocket or HTTP endpoint"""
+    try:
+        # Store motion alert in memory for frontend to fetch
+        motion_alerts.append({
+            'id': len(motion_alerts) + 1,
+            'sensor_id': sensor_id,
+            'sensor_name': sensor_config.get('name', f'Sensor {sensor_id}'),
+            'timestamp': datetime.now().isoformat(),
+            'message': f'Motion detected on {sensor_config.get("name", f"Sensor {sensor_id}")}'
+        })
+        
+        # Keep only last 100 alerts
+        if len(motion_alerts) > 100:
+            motion_alerts.pop(0)
+            
+        print(f"Motion alert sent to frontend for sensor {sensor_id}")
+        
+    except Exception as e:
+        print(f"Error sending motion alert to frontend: {e}")
 
 def report_motion_to_central_server(sensor_id):
     """Report motion detection to central server"""
@@ -562,6 +592,21 @@ def get_motion_sensor_config():
         "enabled": MOTION_SENSOR_ENABLED,
         "count": len(motion_sensor_defs)
     })
+
+@app.route('/api/motion_alerts', methods=['GET'])
+def get_motion_alerts():
+    """Get motion alerts for frontend"""
+    return jsonify({
+        "alerts": motion_alerts,
+        "count": len(motion_alerts)
+    })
+
+@app.route('/api/motion_alerts/clear', methods=['POST'])
+def clear_motion_alerts():
+    """Clear all motion alerts"""
+    global motion_alerts
+    motion_alerts.clear()
+    return jsonify({"message": "All motion alerts cleared"})
 
 @app.errorhandler(404)
 def not_found(error):

@@ -7,6 +7,7 @@ import SystemStats from './components/SystemStats';
 import LoadingSpinner from './components/LoadingSpinner';
 import ConnectionStatus from './components/ConnectionStatus';
 import MotionSensorStatus from './components/MotionSensorStatus';
+import MotionAlertManager from './components/MotionAlert';
 import { 
   Monitor,
   Smartphone,
@@ -141,6 +142,7 @@ function App() {
   return (
     <div className="h-screen bg-gray-900 overflow-hidden">
       <ConnectionStatus isConnected={isConnected} lastUpdate={lastUpdate} />
+      <MotionAlertManager />
       
       <div className="flex h-full">
         {/* Sidebar */}
