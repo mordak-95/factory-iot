@@ -39,6 +39,55 @@ check_raspberry_pi() {
     fi
 }
 
+# Function to check and install gpiozero
+check_gpiozero() {
+    log "Checking gpiozero installation..."
+    
+    if python3 -c "import gpiozero" 2>/dev/null; then
+        log "✓ gpiozero is already installed"
+    else
+        log "Installing gpiozero..."
+        sudo apt install -y python3-gpiozero
+        if python3 -c "import gpiozero" 2>/dev/null; then
+            log "✓ gpiozero installed successfully"
+        else
+            log_warning "Failed to install gpiozero via apt, trying pip..."
+            pip3 install gpiozero
+            if python3 -c "import gpiozero" 2>/dev/null; then
+                log "✓ gpiozero installed successfully via pip"
+            else
+                log_error "Failed to install gpiozero. Motion sensors may not work."
+            fi
+        fi
+    fi
+}
+
+# Function to create necessary config files
+create_config_files() {
+    log "Creating necessary config files..."
+    
+    # Create motion_sensor_config.json if it doesn't exist
+    MOTION_CONFIG="$REPO_DIR/backend/motion_sensor_config.json"
+    if [ ! -f "$MOTION_CONFIG" ]; then
+        echo '[]' > "$MOTION_CONFIG"
+        log "✓ Created motion_sensor_config.json"
+    else
+        log "✓ motion_sensor_config.json already exists"
+    fi
+    
+    # Create relay_config.json if it doesn't exist
+    RELAY_CONFIG="$REPO_DIR/backend/relay_config.json"
+    if [ ! -f "$RELAY_CONFIG" ]; then
+        echo '[]' > "$RELAY_CONFIG"
+        log "✓ Created relay_config.json"
+    else
+        log "✓ relay_config.json already exists"
+    fi
+    
+    # Set proper permissions
+    chmod 644 "$MOTION_CONFIG" "$RELAY_CONFIG"
+}
+
 # Function to clone repository
 clone_repository() {
     log "Cloning Factory IoT repository..."
@@ -106,6 +155,9 @@ install_system_deps() {
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt install -y nodejs
     fi
+    
+    # Check and install gpiozero
+    check_gpiozero
 }
 
 # Function to install Python backend
@@ -122,6 +174,23 @@ install_backend() {
     pip install --upgrade pip
     pip install -r requirements.txt
     
+    # Verify critical dependencies
+    log "Verifying critical dependencies..."
+    if python3 -c "import flask, requests, psutil" 2>/dev/null; then
+        log "✓ Core dependencies verified"
+    else
+        log_error "Some core dependencies failed to install"
+        exit 1
+    fi
+    
+    # Check gpiozero in virtual environment
+    if python3 -c "import gpiozero" 2>/dev/null; then
+        log "✓ gpiozero available in virtual environment"
+    else
+        log_warning "gpiozero not available in virtual environment, installing..."
+        pip install gpiozero
+    fi
+    
     cd ..
     log "Backend installed successfully"
 }
@@ -134,6 +203,14 @@ install_frontend() {
     
     # Install Node.js dependencies
     npm install
+    
+    # Verify npm installation
+    if npm list react > /dev/null 2>&1; then
+        log "✓ Frontend dependencies verified"
+    else
+        log_error "Frontend dependencies failed to install"
+        exit 1
+    fi
     
     cd ..
     log "Frontend installed successfully"
@@ -213,6 +290,8 @@ Environment=PATH=$CURRENT_DIR/backend/venv/bin
 ExecStart=$CURRENT_DIR/backend/venv/bin/python app.py
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -232,6 +311,8 @@ ExecStart=/usr/bin/npm start
 Restart=always
 RestartSec=10
 Environment=PORT=3000
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -249,12 +330,63 @@ EOF
 start_services() {
     log "Starting services..."
     
+    # Start backend first
     sudo systemctl start factory-iot-backend.service
+    sleep 5
+    
+    # Check backend status
+    if systemctl is-active --quiet factory-iot-backend.service; then
+        log "✓ Backend service started successfully"
+    else
+        log_error "Backend service failed to start"
+        sudo journalctl -u factory-iot-backend.service --no-pager -n 20
+        exit 1
+    fi
+    
+    # Start frontend
     sudo systemctl start factory-iot-frontend.service
+    sleep 10
+    
+    # Check frontend status
+    if systemctl is-active --quiet factory-iot-frontend.service; then
+        log "✓ Frontend service started successfully"
+    else
+        log_warning "Frontend service may have issues, checking logs..."
+        sudo journalctl -u factory-iot-frontend.service --no-pager -n 20
+    fi
     
     log "Services started successfully"
     log "Frontend available at: http://localhost:3000"
     log "Backend available at: http://localhost:5000"
+}
+
+# Function to test API endpoints
+test_api_endpoints() {
+    log "Testing API endpoints..."
+    
+    # Wait for services to be ready
+    sleep 15
+    
+    # Test backend
+    if curl -s http://localhost:5000/ > /dev/null; then
+        log "✓ Backend API is responding"
+    else
+        log_warning "Backend API is not responding"
+    fi
+    
+    # Test motion sensors endpoint
+    if curl -s http://localhost:5000/api/motion_sensors > /dev/null; then
+        log "✓ Motion sensors API is working"
+    else
+        log_warning "Motion sensors API may have issues"
+    fi
+    
+    # Test relays endpoint
+    if curl -s http://localhost:5000/api/relays > /dev/null; then
+        log "✓ Relays API is working"
+    else
+        log_warning "Relays API may have issues"
+    fi
 }
 
 # Function to show status
@@ -271,6 +403,18 @@ show_status() {
     
     echo -e "\n${YELLOW}Installation Directory:${NC}"
     echo "$(pwd)"
+    
+    echo -e "\n${YELLOW}Config Files:${NC}"
+    if [ -f "backend/motion_sensor_config.json" ]; then
+        echo "✓ motion_sensor_config.json exists"
+    else
+        echo "✗ motion_sensor_config.json missing"
+    fi
+    if [ -f "backend/relay_config.json" ]; then
+        echo "✓ relay_config.json exists"
+    else
+        echo "✗ relay_config.json missing"
+    fi
     
     echo -e "\n${YELLOW}Log File:${NC}"
     echo "$LOG_FILE"
@@ -329,6 +473,9 @@ main_install() {
     log "Installing frontend..."
     install_frontend
 
+    log "Creating config files..."
+    create_config_files
+
     log "Setting up kiosk mode..."
     setup_kiosk
 
@@ -340,6 +487,9 @@ main_install() {
 
     log "Starting services..."
     start_services
+
+    log "Testing API endpoints..."
+    test_api_endpoints
 
     log "Installation completed successfully!"
 
@@ -355,6 +505,9 @@ main_install() {
     echo -e "\n${YELLOW}To view logs:${NC}" | tee -a "$LOG_FILE"
     echo -e "  journalctl -u factory-iot-backend.service -f" | tee -a "$LOG_FILE"
     echo -e "  journalctl -u factory-iot-frontend.service -f" | tee -a "$LOG_FILE"
+    echo -e "\n${YELLOW}To test motion sensors:${NC}" | tee -a "$LOG_FILE"
+    echo -e "  curl http://localhost:5000/api/motion_sensors" | tee -a "$LOG_FILE"
+    echo -e "  curl http://localhost:5000/api/relays" | tee -a "$LOG_FILE"
 }
 
 # Run main installation
