@@ -8,7 +8,7 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import sessionmaker
 import secrets
 import socket
-import datetime
+from datetime import datetime, time
 from models import MotionSensor, MotionLog
 
 app = Flask(__name__)
