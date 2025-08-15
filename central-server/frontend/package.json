@@ -28,13 +28,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "overrides": {
-    "webpack": "^5.88.0",
-    "html-webpack-plugin": "^5.5.0"
-  },
-  "resolutions": {
-    "webpack": "^5.88.0",
-    "html-webpack-plugin": "^5.5.0"
   }
 }

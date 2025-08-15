@@ -319,8 +319,10 @@ def create_motion_sensor(device_id):
     )
     session.add(motion_sensor)
     session.commit()
+    # Get the ID before closing the session
+    sensor_id = motion_sensor.id
     session.close()
-    return jsonify({'message': 'Motion sensor created', 'id': motion_sensor.id}), 201
+    return jsonify({'message': 'Motion sensor created', 'id': sensor_id}), 201
 
 @app.route('/api/motion_sensors/<int:motion_sensor_id>', methods=['PUT'])
 def update_motion_sensor(motion_sensor_id):
