@@ -29,9 +29,12 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [relays, setRelays] = useState({});
   const [relayError, setRelayError] = useState(null);
+  const [motionSensors, setMotionSensors] = useState([]);
+  const [motionSensorError, setMotionSensorError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [selectedRelay, setSelectedRelay] = useState(null);
+  const [selectedMotionSensor, setSelectedMotionSensor] = useState(null);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -69,6 +72,16 @@ function App() {
     }
   };
 
+  const fetchMotionSensors = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/motion_sensors`);
+      setMotionSensors(res.data.motion_sensors || []);
+      setMotionSensorError(null);
+    } catch (err) {
+      setMotionSensorError('Failed to fetch motion sensors');
+    }
+  };
+
   const controlRelay = async (relayId, action) => {
     try {
       await axios.post(`${API_BASE_URL}/api/relays/${relayId}`, { action });
@@ -82,11 +95,13 @@ function App() {
     // Initial load with loading
     fetchData(true);
     fetchRelays();
+    fetchMotionSensors();
     
     // Set up interval for updates without loading
     const interval = setInterval(() => {
       fetchData(false);
       fetchRelays();
+      fetchMotionSensors();
     }, 5000);
     
     return () => clearInterval(interval);
@@ -112,9 +127,26 @@ function App() {
     isRelay: true
   }));
 
+  // Helper: Motion Sensor DeviceCard props
+  const motionSensorCards = motionSensors.map(sensor => ({
+    id: `motion_${sensor.id}`,
+    name: sensor.name,
+    type: 'motion_sensor',
+    value: sensor.is_active ? 'ACTIVE' : 'INACTIVE',
+    unit: '',
+    status: sensor.is_active ? 'active' : 'inactive',
+    last_update: sensor.last_update || '',
+    isMotionSensor: true,
+    sensor: sensor
+  }));
+
   const totalRelays = relayCards.length;
   const activeRelays = relayCards.filter(r => r.status === 'active').length;
-  const systemHealth = systemStats ? Math.round((activeRelays / totalRelays) * 100) : 0;
+  const totalMotionSensors = motionSensorCards.length;
+  const activeMotionSensors = motionSensorCards.filter(s => s.status === 'active').length;
+  const totalDevices = totalRelays + totalMotionSensors;
+  const activeDevices = activeRelays + activeMotionSensors;
+  const systemHealth = systemStats ? Math.round((activeDevices / totalDevices) * 100) : 0;
 
   return (
     <div className="h-screen bg-gray-900 overflow-hidden">
@@ -152,36 +184,79 @@ function App() {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-white">DASHBOARD</h2>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-400">Total: {totalRelays}</span>
-                      <span className="text-sm text-green-400">Active: {activeRelays}</span>
+                      <span className="text-sm text-gray-400">Total: {totalDevices}</span>
+                      <span className="text-sm text-green-400">Active: {activeDevices}</span>
                     </div>
                   </div>
                   
                   <div className="space-y-3 overflow-y-auto h-[calc(100%-60px)]">
-                    {relayCards.map(relay => (
-                      <div
-                        key={relay.id}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                          selectedRelay?.id === relay.id
-                            ? 'bg-blue-600/20 border-blue-500'
-                            : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
-                        }`}
-                        onClick={() => setSelectedRelay(relay)}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
-                            <Monitor className="w-4 h-4 text-white" />
+                    {/* Relays Section */}
+                    {relayCards.length > 0 && (
+                      <div className="mb-4">
+                        <h3 className="text-sm font-medium text-gray-400 mb-2">RELAYS</h3>
+                        {relayCards.map(relay => (
+                          <div
+                            key={relay.id}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all mb-2 ${
+                              selectedRelay?.id === relay.id
+                                ? 'bg-blue-600/20 border-blue-500'
+                                : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+                            }`}
+                            onClick={() => {
+                              setSelectedRelay(relay);
+                              setSelectedMotionSensor(null);
+                            }}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
+                                <Monitor className="w-4 h-4 text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-sm font-medium text-white">{relay.name}</h3>
+                                <p className="text-xs text-gray-400">ID: {relay.id}</p>
+                              </div>
+                              <div className={`w-2 h-2 rounded-full ${
+                                relay.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                              }`}></div>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <h3 className="text-sm font-medium text-white">{relay.name}</h3>
-                            <p className="text-xs text-gray-400">ID: {relay.id}</p>
-                          </div>
-                          <div className={`w-2 h-2 rounded-full ${
-                            relay.status === 'active' ? 'bg-green-500' : 'bg-red-500'
-                          }`}></div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+
+                    {/* Motion Sensors Section */}
+                    {motionSensorCards.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-400 mb-2">MOTION SENSORS</h3>
+                        {motionSensorCards.map(sensor => (
+                          <div
+                            key={sensor.id}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all mb-2 ${
+                              selectedMotionSensor?.id === sensor.id
+                                ? 'bg-blue-600/20 border-blue-500'
+                                : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+                            }`}
+                            onClick={() => {
+                              setSelectedMotionSensor(sensor);
+                              setSelectedRelay(null);
+                            }}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <Activity className="w-4 h-4 text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-sm font-medium text-white">{sensor.name}</h3>
+                                <p className="text-xs text-gray-400">GPIO: {sensor.sensor.gpio_pin}</p>
+                              </div>
+                              <div className={`w-2 h-2 rounded-full ${
+                                sensor.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                              }`}></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -192,7 +267,7 @@ function App() {
                   {selectedRelay ? (
                     <div>
                       <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-white">Asset Details</h2>
+                        <h2 className="text-lg font-bold text-white">Relay Details</h2>
                         <div className="flex space-x-2">
                           <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
                             Reboot
@@ -226,7 +301,7 @@ function App() {
                           </div>
                           <div>
                             <p className="text-xs text-gray-400">Category</p>
-                            <p className="text-sm font-medium text-white">HARDWARE</p>
+                            <p className="text-sm font-medium text-white">RELAY</p>
                           </div>
                         </div>
                         
@@ -270,9 +345,89 @@ function App() {
                         </div>
                       </div>
                     </div>
+                  ) : selectedMotionSensor ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-white">Motion Sensor Details</h2>
+                        <div className="flex space-x-2">
+                          <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                            Test
+                          </button>
+                          <button className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                            Settings
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-400">Status</p>
+                            <p className={`text-sm font-medium ${
+                              selectedMotionSensor.status === 'active' ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {selectedMotionSensor.status.toUpperCase()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">GPIO Pin</p>
+                            <p className="text-sm font-medium text-white">{selectedMotionSensor.sensor.gpio_pin}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-400">Sensor Name</p>
+                            <p className="text-sm font-medium text-white">{selectedMotionSensor.name}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">Category</p>
+                            <p className="text-sm font-medium text-white">MOTION SENSOR</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-400">Sensitivity</p>
+                            <p className="text-sm font-medium text-white">{selectedMotionSensor.sensor.sensitivity || 'Medium'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">Delay Time</p>
+                            <p className="text-sm font-medium text-white">{selectedMotionSensor.sensor.delay_time || 3}s</p>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-4 border-t border-gray-700">
+                          <h3 className="text-sm font-medium text-white mb-3">Scheduling</h3>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Time Schedule:</span>
+                              <span className="text-sm text-white">
+                                {selectedMotionSensor.sensor.enable_scheduling ? 
+                                  `${selectedMotionSensor.sensor.start_time || '00:00'} - ${selectedMotionSensor.sensor.end_time || '23:59'}` : 
+                                  'Always Active'
+                                }
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Weekdays:</span>
+                              <span className={`text-sm ${selectedMotionSensor.sensor.weekday_monitoring ? 'text-green-400' : 'text-red-400'}`}>
+                                {selectedMotionSensor.sensor.weekday_monitoring ? 'Enabled' : 'Disabled'}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Weekends:</span>
+                              <span className={`text-sm ${selectedMotionSensor.sensor.weekend_monitoring ? 'text-green-400' : 'text-red-400'}`}>
+                                {selectedMotionSensor.sensor.weekend_monitoring ? 'Enabled' : 'Disabled'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-400">Select a relay to view details</p>
+                      <p className="text-gray-400">Select a relay or motion sensor to view details</p>
                     </div>
                   )}
                 </div>

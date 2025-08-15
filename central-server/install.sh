@@ -130,8 +130,36 @@ cd "$PROJECT_DIR"
 # Setup frontend
 echo "[6/8] Setting up frontend..."
 cd "$PROJECT_DIR/frontend"
+
+# Clean up any existing node_modules and package-lock.json
+if [ -d "node_modules" ]; then
+    echo "Removing existing node_modules..."
+    rm -rf node_modules
+fi
+if [ -f "package-lock.json" ]; then
+    echo "Removing existing package-lock.json..."
+    rm -f package-lock.json
+fi
+
+# Fix package.json to use compatible React versions
+echo "Fixing package.json for compatibility..."
+sed -i 's/"react": "^19.1.0"/"react": "^18.2.0"/g' package.json
+sed -i 's/"react-dom": "^19.1.0"/"react-dom": "^18.2.0"/g' package.json
+
+# Add overrides and resolutions for webpack compatibility
+if ! grep -q '"overrides"' package.json; then
+    echo "Adding webpack overrides..."
+    sed -i 's/}$/,\n  "overrides": {\n    "webpack": "^5.88.0",\n    "html-webpack-plugin": "^5.5.0"\n  },\n  "resolutions": {\n    "webpack": "^5.88.0",\n    "html-webpack-plugin": "^5.5.0"\n  }\n}/' package.json
+fi
+
 npm install
 
+# Verify webpack compatibility
+if npm list webpack > /dev/null 2>&1; then
+    echo "✓ Webpack compatibility verified"
+else
+    echo "⚠ Webpack compatibility check failed"
+fi
 
 # npm run build
 nohup npm start -- --port $FRONTEND_PORT > "$PROJECT_DIR/frontend.log" 2>&1 &

@@ -14,7 +14,8 @@ const MotionSensorStatus = () => {
 
   const fetchMotionSensors = async () => {
     try {
-      const response = await fetch('/api/motion_sensors');
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_BASE_URL}/api/motion_sensors`);
       if (response.ok) {
         const data = await response.json();
         setMotionSensors(data.motion_sensors || []);
@@ -30,7 +31,8 @@ const MotionSensorStatus = () => {
 
   const testMotionSensor = async (sensorId) => {
     try {
-      const response = await fetch(`/api/motion_sensors/${sensorId}/test`, {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_BASE_URL}/api/motion_sensors/${sensorId}/test`, {
         method: 'POST',
       });
       if (response.ok) {

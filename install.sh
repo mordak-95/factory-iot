@@ -201,7 +201,29 @@ install_frontend() {
     
     cd client
     
+    # Clean up any existing node_modules and package-lock.json
+    if [ -d "node_modules" ]; then
+        log "Removing existing node_modules..."
+        rm -rf node_modules
+    fi
+    if [ -f "package-lock.json" ]; then
+        log "Removing existing package-lock.json..."
+        rm -f package-lock.json
+    fi
+    
+    # Fix package.json to use compatible React versions
+    log "Fixing package.json for compatibility..."
+    sed -i 's/"react": "^19.1.0"/"react": "^18.2.0"/g' package.json
+    sed -i 's/"react-dom": "^19.1.0"/"react-dom": "^18.2.0"/g' package.json
+    
+    # Add overrides and resolutions for webpack compatibility
+    if ! grep -q '"overrides"' package.json; then
+        log "Adding webpack overrides..."
+        sed -i 's/}$/,\n  "overrides": {\n    "webpack": "^5.88.0",\n    "html-webpack-plugin": "^5.5.0"\n  },\n  "resolutions": {\n    "webpack": "^5.88.0",\n    "html-webpack-plugin": "^5.5.0"\n  }\n}/' package.json
+    fi
+    
     # Install Node.js dependencies
+    log "Installing Node.js dependencies..."
     npm install
     
     # Verify npm installation
@@ -210,6 +232,13 @@ install_frontend() {
     else
         log_error "Frontend dependencies failed to install"
         exit 1
+    fi
+    
+    # Verify webpack compatibility
+    if npm list webpack > /dev/null 2>&1; then
+        log "✓ Webpack compatibility verified"
+    else
+        log_warning "Webpack compatibility check failed"
     fi
     
     cd ..
