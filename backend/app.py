@@ -161,7 +161,9 @@ def load_motion_sensor_config():
     try:
         with open(MOTION_SENSOR_CONFIG_PATH, 'r') as f:
             motion_sensor_defs = json.load(f)
-    except Exception:
+            print(f"[DEBUG] Loaded motion sensor config: {motion_sensor_defs}")
+    except Exception as e:
+        print(f"[DEBUG] Failed to load motion sensor config: {e}")
         motion_sensor_defs = []
     
     # (Re)initialize motion sensor objects
@@ -169,23 +171,30 @@ def load_motion_sensor_config():
         motion_sensor_objs = {}
         motion_detection_callbacks.clear()
         
+        print(f"[DEBUG] Initializing {len(motion_sensor_defs)} motion sensors...")
+        
         for ms in motion_sensor_defs:
             if ms.get('is_active', True):
                 try:
+                    print(f"[DEBUG] Setting up motion sensor {ms['id']} on GPIO {ms['gpio_pin']}")
                     motion_sensor = MotionSensor(ms['gpio_pin'])
                     motion_sensor_objs[str(ms['id'])] = motion_sensor
                     
                     # Set up motion detection callback
                     def create_callback(sensor_id):
                         def callback():
+                            print(f"[DEBUG] Motion callback triggered for sensor {sensor_id}")
                             handle_motion_detection(sensor_id)
                         return callback
                     
                     motion_sensor.when_motion = create_callback(ms['id'])
                     motion_detection_callbacks.append(motion_sensor)
+                    print(f"[DEBUG] Motion sensor {ms['id']} callback set successfully")
                     
                 except Exception as e:
                     print(f"Failed to initialize motion sensor {ms['id']} on GPIO {ms['gpio_pin']}: {e}")
+    else:
+        print("[DEBUG] Motion sensor control not enabled")
 
 def is_motion_detection_allowed(sensor_config):
     """Check if motion detection is allowed based on time scheduling"""
@@ -228,7 +237,7 @@ def handle_motion_detection(sensor_id):
         print(f"Motion detected on sensor {sensor_id}")
         
         # Find sensor config
-        sensor_config = next((s for s in motion_sensor_defs if s['id'] == sensor_config if s['id'] == sensor_id), None)
+        sensor_config = next((s for s in motion_sensor_defs if s['id'] == sensor_id), None)
         if not sensor_config:
             print(f"Sensor config not found for sensor {sensor_id}")
             return
@@ -582,6 +591,38 @@ def test_motion_sensor(sensor_id):
     return jsonify({
         "message": f"Motion sensor {sensor_id} test triggered",
         "sensor": sensor_def['name']
+    })
+
+@app.route('/api/motion_sensors/test_all', methods=['POST'])
+def test_all_motion_sensors():
+    """Test all motion sensors by simulating motion detection"""
+    if not MOTION_SENSOR_ENABLED:
+        return jsonify({"error": "Motion sensor control not available on this system."}), 501
+    
+    if not motion_sensor_defs:
+        return jsonify({"error": "No motion sensors configured"}), 404
+    
+    results = []
+    for sensor in motion_sensor_defs:
+        try:
+            # Simulate motion detection
+            handle_motion_detection(sensor['id'])
+            results.append({
+                "sensor_id": sensor['id'],
+                "name": sensor['name'],
+                "status": "success"
+            })
+        except Exception as e:
+            results.append({
+                "sensor_id": sensor['id'],
+                "name": sensor['name'],
+                "status": "error",
+                "error": str(e)
+            })
+    
+    return jsonify({
+        "message": "All motion sensors tested",
+        "results": results
     })
 
 @app.route('/api/motion_sensors/config', methods=['GET'])
