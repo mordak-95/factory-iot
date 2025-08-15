@@ -181,8 +181,43 @@ def load_motion_sensor_config():
                 except Exception as e:
                     print(f"Failed to initialize motion sensor {ms['id']} on GPIO {ms['gpio_pin']}: {e}")
 
+def is_motion_detection_allowed(sensor_config):
+    """Check if motion detection is allowed based on time scheduling"""
+    if not sensor_config.get('enable_scheduling', False):
+        return True
+    
+    now = datetime.now()
+    current_time = now.time()
+    current_weekday = now.weekday()  # 0=Monday, 6=Sunday
+    
+    # Check weekday/weekend monitoring
+    is_weekend = current_weekday >= 5  # Saturday or Sunday
+    if is_weekend and not sensor_config.get('weekend_monitoring', True):
+        return False
+    if not is_weekend and not sensor_config.get('weekday_monitoring', True):
+        return False
+    
+    # Check time range
+    start_time = sensor_config.get('start_time')
+    end_time = sensor_config.get('end_time')
+    
+    if start_time and end_time:
+        # Convert string times to time objects if needed
+        if isinstance(start_time, str):
+            start_time = datetime.strptime(start_time, '%H:%M').time()
+        if isinstance(end_time, str):
+            end_time = datetime.strptime(end_time, '%H:%M').time()
+        
+        # Handle overnight ranges (e.g., 22:00 to 06:00)
+        if start_time > end_time:
+            return current_time >= start_time or current_time <= end_time
+        else:
+            return start_time <= current_time <= end_time
+    
+    return True
+
 def handle_motion_detection(sensor_id):
-    """Handle motion detection from GPIO sensor"""
+    """Handle motion detection from GPIO sensor with time scheduling"""
     try:
         print(f"Motion detected on sensor {sensor_id}")
         
@@ -191,6 +226,13 @@ def handle_motion_detection(sensor_id):
         if not sensor_config:
             print(f"Sensor config not found for sensor {sensor_id}")
             return
+        
+        # Check if motion detection is allowed based on scheduling
+        if not is_motion_detection_allowed(sensor_config):
+            print(f"Motion detection not allowed for sensor {sensor_id} at current time")
+            return
+        
+        print(f"Motion detection allowed for sensor {sensor_id}, reporting to central server")
         
         # Report to central server
         report_motion_to_central_server(sensor_id)

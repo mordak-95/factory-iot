@@ -306,23 +306,63 @@ def create_motion_sensor(device_id):
     data = request.get_json()
     if not data or 'name' not in data or 'gpio_pin' not in data:
         return jsonify({'error': 'Name and gpio_pin are required'}), 400
+    
     session = Session()
     device = session.query(Device).get(device_id)
     if not device:
         session.close()
         return jsonify({'error': 'Device not found'}), 404
+    
+    # Parse time strings to Time objects
+    start_time = None
+    end_time = None
+    if data.get('start_time'):
+        try:
+            start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+        except ValueError:
+            return jsonify({'error': 'Invalid start_time format. Use HH:MM'}), 400
+    
+    if data.get('end_time'):
+        try:
+            end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+        except ValueError:
+            return jsonify({'error': 'Invalid end_time format. Use HH:MM'}), 400
+    
     motion_sensor = MotionSensor(
         device_id=device_id,
         name=data['name'],
         gpio_pin=data['gpio_pin'],
-        is_active=data.get('is_active', True)
+        is_active=data.get('is_active', True),
+        start_time=start_time,
+        end_time=end_time,
+        timezone=data.get('timezone', 'UTC'),
+        enable_scheduling=data.get('enable_scheduling', False),
+        weekend_monitoring=data.get('weekend_monitoring', True),
+        weekday_monitoring=data.get('weekday_monitoring', True),
+        sensitivity=data.get('sensitivity', 'medium'),
+        delay_time=data.get('delay_time', 3),
+        trigger_mode=data.get('trigger_mode', 'single')
     )
+    
     session.add(motion_sensor)
     session.commit()
+    
     # Get the ID before closing the session
     sensor_id = motion_sensor.id
     session.close()
-    return jsonify({'message': 'Motion sensor created', 'id': sensor_id}), 201
+    
+    return jsonify({
+        'message': 'Motion sensor created', 
+        'id': sensor_id,
+        'sensor': {
+            'id': sensor_id,
+            'name': motion_sensor.name,
+            'gpio_pin': motion_sensor.gpio_pin,
+            'start_time': motion_sensor.start_time.strftime('%H:%M') if motion_sensor.start_time else None,
+            'end_time': motion_sensor.end_time.strftime('%H:%M') if motion_sensor.end_time else None,
+            'enable_scheduling': motion_sensor.enable_scheduling
+        }
+    }), 201
 
 @app.route('/api/motion_sensors/<int:motion_sensor_id>', methods=['PUT'])
 def update_motion_sensor(motion_sensor_id):
@@ -332,9 +372,33 @@ def update_motion_sensor(motion_sensor_id):
     if not motion_sensor:
         session.close()
         return jsonify({'error': 'Motion sensor not found'}), 404
-    for field in ['name', 'gpio_pin', 'is_active']:
+    
+    # Update basic fields
+    for field in ['name', 'gpio_pin', 'is_active', 'timezone', 'enable_scheduling', 
+                  'weekend_monitoring', 'weekday_monitoring', 'sensitivity', 
+                  'delay_time', 'trigger_mode']:
         if field in data:
             setattr(motion_sensor, field, data[field])
+    
+    # Update time fields
+    if 'start_time' in data:
+        if data['start_time']:
+            try:
+                motion_sensor.start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+            except ValueError:
+                return jsonify({'error': 'Invalid start_time format. Use HH:MM'}), 400
+        else:
+            motion_sensor.start_time = None
+    
+    if 'end_time' in data:
+        if data['end_time']:
+            try:
+                motion_sensor.end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+            except ValueError:
+                return jsonify({'error': 'Invalid end_time format. Use HH:MM'}), 400
+        else:
+            motion_sensor.end_time = None
+    
     session.commit()
     session.close()
     return jsonify({'message': 'Motion sensor updated'})

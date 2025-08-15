@@ -61,16 +61,31 @@ class Sensor(Base):
 
 class MotionSensor(Base):
     __tablename__ = 'motion_sensors'
+    
     id = Column(Integer, primary_key=True)
-    device_id = Column(Integer, ForeignKey('devices.id'))
+    device_id = Column(Integer, ForeignKey('devices.id'), nullable=False)
     name = Column(String(100), nullable=False)
     gpio_pin = Column(Integer, nullable=False)
     is_active = Column(Boolean, default=True)
     last_motion_detected = Column(DateTime)
     motion_count = Column(Integer, default=0)
     last_update = Column(DateTime, default=datetime.datetime.utcnow)
-    device = relationship('Device', back_populates='motion_sensors')
-    motion_logs = relationship('MotionLog', back_populates='motion_sensor')
+    
+    # New fields for HC-SR501 scheduling
+    start_time = Column(Time, nullable=True)  # Start time for monitoring (e.g., 08:00)
+    end_time = Column(Time, nullable=True)    # End time for monitoring (e.g., 18:00)
+    timezone = Column(String(50), default='UTC')  # Timezone for the device
+    enable_scheduling = Column(Boolean, default=False)  # Whether to use time scheduling
+    weekend_monitoring = Column(Boolean, default=True)  # Monitor on weekends
+    weekday_monitoring = Column(Boolean, default=True)  # Monitor on weekdays
+    
+    # HC-SR501 specific settings
+    sensitivity = Column(String(20), default='medium')  # low, medium, high
+    delay_time = Column(Integer, default=3)  # Delay time in seconds after motion detection
+    trigger_mode = Column(String(20), default='single')  # single, repeat
+    
+    device = relationship("Device", back_populates="motion_sensors")
+    motion_logs = relationship("MotionLog", back_populates="motion_sensor", cascade="all, delete-orphan")
 
 class MotionLog(Base):
     __tablename__ = 'motion_logs'
