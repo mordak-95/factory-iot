@@ -29,7 +29,8 @@ const MotionSensorManager = ({ deviceId, onUpdate }) => {
   const fetchMotionSensors = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/motion_sensors`);
+      const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
+      const response = await fetch(`${backendUrl}/api/motion_sensors`);
       if (response.ok) {
         const data = await response.json();
         // Filter motion sensors for this specific device
@@ -48,9 +49,10 @@ const MotionSensorManager = ({ deviceId, onUpdate }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
       const url = editingSensor 
-        ? `/api/motion_sensors/${editingSensor.id}`
-        : `/api/devices/${deviceId}/motion_sensors`;
+        ? `${backendUrl}/api/motion_sensors/${editingSensor.id}`
+        : `${backendUrl}/api/devices/${deviceId}/motion_sensors`;
       
       const method = editingSensor ? 'PUT' : 'POST';
       
@@ -83,7 +85,8 @@ const MotionSensorManager = ({ deviceId, onUpdate }) => {
     }
 
     try {
-      const response = await fetch(`/api/motion_sensors/${sensorId}`, {
+      const backendUrl = window.location.origin.replace(/:\d+$/, ':5000');
+      const response = await fetch(`${backendUrl}/api/motion_sensors/${sensorId}`, {
         method: 'DELETE',
       });
 
